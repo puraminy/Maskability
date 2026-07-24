@@ -1,5 +1,5 @@
 defaults:
-  - experiment: milestone2
+  - experiment: milestone3
   - _self_
 
 project:
