@@ -1,0 +1,16 @@
+defaults:
+  - experiment: milestone1
+  - _self_
+
+project:
+  name: maskability-index
+  root: ${hydra:runtime.cwd}
+
+hydra:
+  run:
+    dir: results/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment.name}
+  sweep:
+    dir: results/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment.name}
+    subdir: ${hydra.job.num}
+  job:
+    chdir: false
