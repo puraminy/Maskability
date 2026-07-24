@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 ATOMIC2020_HF_PATH = "allenai/atomic2020"
-DEFAULT_LOCAL_ATOMIC2020_PATH = "data/atomic"
+DEFAULT_LOCAL_ATOMIC2020_PATH = "../data/atomic"
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
 _OFFICIAL_SPLIT_FILES = {
     "train": "v4_atomic_trn.csv",

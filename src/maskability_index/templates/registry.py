@@ -56,6 +56,18 @@ class TemplateRegistry:
         return sorted(self._templates)
 
 
+VALID_RELATIONS = {
+    "xAttr",
+    "xEffect",
+    "xIntent",
+    "xNeed",
+    "xReact",
+    "xWant",
+    "oEffect",
+    "oReact",
+    "oWant",
+}
+
 CANONICAL_ATOMIC_PHRASES: dict[str, str] = {
     "AtLocation": "located at",
     "ObjectUse": "is used for",
