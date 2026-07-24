@@ -17,4 +17,4 @@ Hydra configurations live in `configs/`; runtime outputs are created under `resu
 
 ## ATOMIC2020 data
 
-See `docs/ATOMIC2020_DATA.md` for instructions to obtain, convert, and verify the production ATOMIC2020 dataset.
+See `docs/DATASET.md` for instructions to obtain and place the official ATOMIC2020 CSV files.
