@@ -13,3 +13,8 @@ uv run pytest
 ```
 
 Hydra configurations live in `configs/`; runtime outputs are created under `results/`.
+
+
+## ATOMIC2020 data
+
+See `docs/ATOMIC2020_DATA.md` for instructions to obtain, convert, and verify the production ATOMIC2020 dataset.

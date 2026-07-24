@@ -5,6 +5,7 @@ dataset:
   name: atomic2020
   hf_path: allenai/atomic2020
   cache_dir: data/cache
+  local_path: data/atomic2020
   splits: [train, validation, test]
 
 model:
@@ -32,7 +33,8 @@ training:
   seed: ${experiment.seed}
   mixed_precision: false
   output_dir: ${hydra:run.dir}/checkpoint
-  tokenized_cache_dir: data/cache/tokenized/${experiment.name}/${experiment.model.name}/${experiment.prompting.style}
+  tokenized_cache_dir: data/cache
+  local_path: data/atomic2020/tokenized/${experiment.name}/${experiment.model.name}/${experiment.prompting.style}
   overwrite_cache: false
   logging_steps: 50
   save_strategy: epoch

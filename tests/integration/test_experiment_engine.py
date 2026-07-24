@@ -10,12 +10,25 @@ from omegaconf import OmegaConf
 from maskability_index.experiments import ExperimentRegistry, ExperimentRunner, default_registry
 
 
+def _write_atomic_fixture(tmp_path: Path) -> Path:
+    data_dir = tmp_path / "atomic2020"
+    data_dir.mkdir(exist_ok=True)
+    (data_dir / "validation.jsonl").write_text(
+        "{\"id\":\"r1\",\"event\":\"PersonX drinks coffee\",\"xWant\":[\"to stay awake\"]}\n"
+        "{\"id\":\"r2\",\"event\":\"rain\",\"Causes\":[\"wet streets\"]}\n",
+        encoding="utf-8",
+    )
+    return data_dir
+
+
 def _cfg(tmp_path: Path):
     config_dir = Path(__file__).resolve().parents[2] / "configs"
     with initialize_config_dir(version_base="1.3", config_dir=str(config_dir)):
         cfg = compose(config_name="config", overrides=["experiment=reproduction", "project.root=."])
     OmegaConf.resolve(cfg)
     cfg.experiment.output_dir = str(tmp_path / "reproduction")
+    cfg.experiment.dataset.local_path = str(_write_atomic_fixture(tmp_path))
+    cfg.experiment.dataset.backend = "local"
     cfg.experiment.analysis.bootstrap_iterations = 10
     cfg.experiment.analysis.permutation_iterations = 10
     return cfg
