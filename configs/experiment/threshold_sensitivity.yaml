@@ -1,0 +1,56 @@
+name: threshold_sensitivity
+id: E03
+seed: 13
+output_dir: results/threshold_sensitivity
+
+dataset:
+  backend: synthetic
+  name: atomic2020
+  hf_path: allenai/atomic2020
+  cache_dir: data/cache
+  split: validation
+  limit: 20
+  synthetic_rows:
+    - {head: "PersonX drinks coffee", relation: "xWant", tail: "to stay awake", split: "validation", id: "synthetic-1"}
+    - {head: "PersonX loses keys", relation: "xReact", tail: "frustrated", split: "validation", id: "synthetic-2"}
+    - {head: "rain", relation: "Causes", tail: "wet streets", split: "validation", id: "synthetic-3"}
+
+model:
+  name: google/t5-small
+  tokenizer_name: ${experiment.model.name}
+  revision: main
+
+prompting:
+  style: both
+  n_shot: 5
+  template_set: canonical
+
+training:
+  enabled: false
+  epochs: 3
+  batch_size: 8
+  learning_rate: 0.00005
+  mixed_precision: false
+  output_dir: ${experiment.output_dir}/checkpoint
+
+depthrank:
+  enabled: true
+  backend: deterministic_fixture
+
+analysis:
+  threshold: 0.30
+  bootstrap_iterations: 100
+  permutation_iterations: 100
+  thresholds: [0.20, 0.30, 0.40, 0.50]
+  n_shots: [1, 3, 5, 10, 20]
+  models: [google/t5-small, google/t5-base, google/t5-large]
+  baselines: [random, frequency, entropy, confidence]
+  prompt_variants: [canonical, alternative]
+
+tracking:
+  backend: local
+  mlflow_tracking_uri: file:${project.root}/results/mlruns
+  experiment_name: ${experiment.name}
+
+outputs:
+  create_subdirs: [logs, checkpoint, plots, latex]
