@@ -13,6 +13,7 @@ import pandas as pd
 from omegaconf import DictConfig
 
 from maskability_index.datasets.atomic import RelationInstance, load_atomic2020_instances
+from maskability_index.evaluation import update_results_index
 from maskability_index.maskability import MaskabilityCalculator
 from maskability_index.plotting import generate_plots
 from maskability_index.prompting import MaskedPromptBuilder, PrefixPromptBuilder
@@ -22,7 +23,15 @@ from maskability_index.utils.logging import configure_logging
 from maskability_index.utils.reproducibility import collect_environment_info, set_seed
 
 OUTPUT_SUBDIRS = ["plots", "latex", "logs", "checkpoint"]
-PLOT_NAMES = ["scatter", "histogram", "correlation", "threshold", "sensitivity"]
+PLOT_NAMES = [
+    "scatter",
+    "histogram",
+    "correlation",
+    "threshold",
+    "sensitivity",
+    "model_comparison",
+    "baseline_comparison",
+]
 
 
 class ExperimentRunner:
@@ -55,6 +64,7 @@ class ExperimentRunner:
         write_json(self.output_dir / "metrics.json", metrics)
         generate_plots(mi_df, self.output_dir / "plots")
         self._write_latex(mi_df)
+        update_results_index(self.output_dir, Path("results") / "index.json")
         (self.output_dir / "checkpoint" / "README.txt").write_text(
             "Checkpoint directory reserved for configured HuggingFace training outputs.\n",
             encoding="utf-8",
@@ -142,8 +152,28 @@ class ExperimentRunner:
 
     def _write_latex(self, mi_df: pd.DataFrame) -> None:
         latex = self.output_dir / "latex"
-        table = mi_df.to_latex(index=False, float_format="%.3f")
-        (latex / "tables.tex").write_text(table, encoding="utf-8")
+        table1 = mi_df.to_latex(
+            index=False,
+            float_format="%.3f",
+            caption="Relation-level Maskability Index results.",
+            label="tab:mi",
+        )
+        table2 = (
+            mi_df.groupby("group", as_index=False)["maskability_index"]
+            .agg(["count", "mean", "std"])
+            .reset_index()
+            .to_latex(
+                index=False,
+                float_format="%.3f",
+                caption="Maskability groups summary.",
+                label="tab:groups",
+            )
+        )
+        (latex / "table_1.tex").write_text(table1, encoding="utf-8")
+        (latex / "table_2.tex").write_text(table2, encoding="utf-8")
+        (latex / "tables.tex").write_text(table1 + "\n" + table2, encoding="utf-8")
+        (latex / "table_1.md").write_text(self._to_markdown(mi_df), encoding="utf-8")
+        mi_df.to_csv(latex / "table_1.csv", index=False)
         figures = "\n".join(
             f"\\includegraphics[width=0.8\\linewidth]{{plots/{name}.pdf}}"
             for name in PLOT_NAMES
@@ -156,6 +186,18 @@ class ExperimentRunner:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
             writer.writeheader()
             writer.writerows(rows)
+
+
+    @staticmethod
+    def _to_markdown(df: pd.DataFrame) -> str:
+        headers = [str(col) for col in df.columns]
+        rows = [[str(value) for value in row] for row in df.itertuples(index=False, name=None)]
+        lines = [
+            "| " + " | ".join(headers) + " |",
+            "| " + " | ".join(["---"] * len(headers)) + " |",
+        ]
+        lines.extend("| " + " | ".join(row) + " |" for row in rows)
+        return "\n".join(lines) + "\n"
 
 
 def run_experiment(cfg: DictConfig) -> Path:
