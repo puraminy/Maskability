@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from datasets import DatasetDict, load_dataset
+from typing import Any
+
+try:
+    from datasets import DatasetDict, load_dataset
+except ImportError:  # pragma: no cover - exercised only without optional runtime deps
+    DatasetDict = dict  # type: ignore[assignment]
+
+    def load_dataset(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-untyped-def]
+        raise ImportError("Install the `datasets` package to load HuggingFace datasets.")
 
 
 def load_hf_dataset(path: str, cache_dir: str | None = None) -> DatasetDict:
