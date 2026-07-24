@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -58,38 +59,47 @@ class MaskabilitySeq2SeqTrainer:
         set_seed(config.seed)
         torch.use_deterministic_algorithms(True, warn_only=True)
         data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model)
-        args = Seq2SeqTrainingArguments(
-            output_dir=config.output_dir,
-            num_train_epochs=config.epochs,
-            per_device_train_batch_size=config.batch_size,
-            per_device_eval_batch_size=config.batch_size,
-            learning_rate=config.learning_rate,
-            optim=config.optimizer,
-            lr_scheduler_type=config.scheduler,
-            warmup_steps=config.warmup,
-            weight_decay=config.weight_decay,
-            predict_with_generate=config.predict_with_generate,
-            generation_max_length=config.generation_length,
-            generation_num_beams=config.beam_size,
-            seed=config.seed,
-            data_seed=config.seed,
-            fp16=config.mixed_precision,
-            logging_steps=config.logging_steps,
-            save_strategy=config.save_strategy,
-            evaluation_strategy=config.evaluation_strategy,
-            report_to=[],
-        )
-        self.trainer = Seq2SeqTrainer(
-            model=model,
-            args=args,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            tokenizer=tokenizer,
-            data_collator=data_collator,
-            compute_metrics=build_compute_metrics(
+        argument_kwargs = {
+            "output_dir": config.output_dir,
+            "num_train_epochs": config.epochs,
+            "per_device_train_batch_size": config.batch_size,
+            "per_device_eval_batch_size": config.batch_size,
+            "learning_rate": config.learning_rate,
+            "optim": config.optimizer,
+            "lr_scheduler_type": config.scheduler,
+            "warmup_steps": config.warmup,
+            "weight_decay": config.weight_decay,
+            "predict_with_generate": config.predict_with_generate,
+            "generation_max_length": config.generation_length,
+            "generation_num_beams": config.beam_size,
+            "seed": config.seed,
+            "data_seed": config.seed,
+            "fp16": config.mixed_precision,
+            "logging_steps": config.logging_steps,
+            "save_strategy": config.save_strategy,
+
+            "report_to": [],
+        }
+        strategy_key = "evaluation_strategy"
+        if "eval_strategy" in inspect.signature(Seq2SeqTrainingArguments).parameters:
+            strategy_key = "eval_strategy"
+        argument_kwargs[strategy_key] = config.evaluation_strategy
+        args = Seq2SeqTrainingArguments(**argument_kwargs)
+        trainer_kwargs = {
+            "model": model,
+            "args": args,
+            "train_dataset": train_dataset,
+            "eval_dataset": eval_dataset,
+            "data_collator": data_collator,
+            "compute_metrics": build_compute_metrics(
                 tokenizer if config.predict_with_generate else None
             ),
-        )
+        }
+        tokenizer_key = "tokenizer"
+        if "processing_class" in inspect.signature(Seq2SeqTrainer).parameters:
+            tokenizer_key = "processing_class"
+        trainer_kwargs[tokenizer_key] = tokenizer
+        self.trainer = Seq2SeqTrainer(**trainer_kwargs)
 
     def train(self, resume_from_checkpoint: str | Path | bool | None = None) -> Any:
         """Train, optionally resuming from a checkpoint path or latest checkpoint."""

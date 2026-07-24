@@ -18,16 +18,19 @@ def load_config(config_dir: Path | str = "configs", config_name: str = "config")
 
     Returns:
         A resolved `DictConfig` containing the full experiment configuration.
-    """
 
+    """
     absolute_config_dir = Path(config_dir).resolve()
     with initialize_config_dir(version_base="1.3", config_dir=str(absolute_config_dir)):
-        cfg = compose(config_name=config_name)
+        overrides = [
+            f"project.root={Path.cwd()}",
+            "experiment.training.output_dir=results/local/checkpoint",
+        ]
+        cfg = compose(config_name=config_name, overrides=overrides)
     OmegaConf.resolve(cfg)
     return cfg
 
 
 def to_container(cfg: DictConfig) -> dict[str, Any]:
     """Convert a Hydra configuration to a plain Python dictionary."""
-
     return dict(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
