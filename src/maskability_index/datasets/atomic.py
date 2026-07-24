@@ -9,6 +9,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+VALID_RELATIONS = {
+    "xAttr",
+    "xEffect",
+    "xIntent",
+    "xNeed",
+    "xReact",
+    "xWant",
+    "oEffect",
+    "oReact",
+    "oWant",
+}
+
 ATOMIC2020_HF_PATH = "allenai/atomic2020"
 DEFAULT_LOCAL_ATOMIC2020_PATH = "../data/atomic"
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
@@ -112,15 +124,22 @@ def iter_relation_instances(
                         _clean(head), _clean(relation), candidate, split, f"{row_id}{suffix}"
                     )
             continue
-        for key, value in row.items():
-            if key in {*_ID_COLUMNS, *_HEAD_COLUMNS}:
+
+        for relation in VALID_RELATIONS:
+            if relation not in row:
                 continue
+
+            value = row[relation]
+
             for tail_index, candidate in enumerate(_tails(value)):
                 if candidate:
                     yield RelationInstance(
-                        _clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}"
+                        _clean(head),
+                        relation,
+                        candidate,
+                        split,
+                        f"{row_id}:{relation}:{tail_index}",
                     )
-
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():

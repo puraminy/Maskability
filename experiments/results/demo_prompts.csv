@@ -1,71 +1,71 @@
 relation,head,tail,prefix_prompt,masked_prompt,few_shot_prompt
-split,PersonX redoes PersonX's bedroom,trn,PersonX redoes PersonX's bedroom split,PersonX redoes PersonX's bedroom split <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+xEffect,PersonX finishes PersonX's report,mood lifts,"PersonX finishes PersonX's report as a result, PersonX","PersonX finishes PersonX's report as a result, PersonX <extra_id_0>","PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX redoes PersonX's bedroom split"
-prefix,PersonX dies last year,dies,PersonX dies last year prefix,PersonX dies last year prefix <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX finishes PersonX's report as a result, PersonX"
+xWant,PersonX makes one instead,to get something done quicker,PersonX makes one instead after that they want,PersonX makes one instead after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX dies last year prefix"
-xWant,PersonX hits the rocks,To apply antiseptic,PersonX hits the rocks after that they want,PersonX hits the rocks after that they want <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX makes one instead after that they want"
+xWant,PersonX darkens a church door,to repent for their sins,PersonX darkens a church door after that they want,PersonX darkens a church door after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX hits the rocks after that they want"
-xNeed,PersonX is walking PersonY's dog,to apply for a job,PersonX is walking PersonY's dog before that they need,PersonX is walking PersonY's dog before that they need <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX darkens a church door after that they want"
+xAttr,PersonX asks PersonX's friends for advice,lost,PersonX asks PersonX's friends for advice is seen as,PersonX asks PersonX's friends for advice is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX is walking PersonY's dog before that they need"
-xNeed,PersonX keeps my eyes open,goes up to me,PersonX keeps my eyes open before that they need,PersonX keeps my eyes open before that they need <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX asks PersonX's friends for advice is seen as"
+xAttr,PersonX lets out a sigh of relief,tired,PersonX lets out a sigh of relief is seen as,PersonX lets out a sigh of relief is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX keeps my eyes open before that they need"
-prefix,PersonX gives PersonY answers,answers,PersonX gives PersonY answers prefix,PersonX gives PersonY answers prefix <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX lets out a sigh of relief is seen as"
+xNeed,PersonX takes PersonY to bed,to be home with Y,PersonX takes PersonY to bed before that they need,PersonX takes PersonY to bed before that they need <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX gives PersonY answers prefix"
-split,PersonX calls the shots,trn,PersonX calls the shots split,PersonX calls the shots split <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX takes PersonY to bed before that they need"
+xNeed,PersonX smells of the lamp,to persist working,PersonX smells of the lamp before that they need,PersonX smells of the lamp before that they need <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX calls the shots split"
-xReact,PersonX gives PersonY something,happy,"PersonX gives PersonY something as a result, PersonX feels","PersonX gives PersonY something as a result, PersonX feels <extra_id_0>","PersonX redoes PersonX's bedroom split trn
+PersonX smells of the lamp before that they need"
+xWant,PersonX feels pretty good,have a drink,PersonX feels pretty good after that they want,PersonX feels pretty good after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX gives PersonY something as a result, PersonX feels"
-xAttr,PersonX loves PersonY much,happy,PersonX loves PersonY much is seen as,PersonX loves PersonY much is seen as <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX feels pretty good after that they want"
+xAttr,PersonX attains PersonX's end,determined,PersonX attains PersonX's end is seen as,PersonX attains PersonX's end is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX loves PersonY much is seen as"
-split,PersonX walks across the room,trn,PersonX walks across the room split,PersonX walks across the room split <extra_id_0>,"PersonX redoes PersonX's bedroom split trn
+PersonX attains PersonX's end is seen as"
+oWant,PersonX drops PersonY a line,to talk to them,"PersonX drops PersonY a line as a result, others want","PersonX drops PersonY a line as a result, others want <extra_id_0>","PersonX finishes PersonX's report as a result, PersonX mood lifts
 
-PersonX dies last year prefix dies
+PersonX makes one instead after that they want to get something done quicker
 
-PersonX hits the rocks after that they want To apply antiseptic
+PersonX darkens a church door after that they want to repent for their sins
 
-PersonX walks across the room split"
+PersonX drops PersonY a line as a result, others want"
