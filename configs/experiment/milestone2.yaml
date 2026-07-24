@@ -1,0 +1,26 @@
+name: milestone2_dataset_prompt_infrastructure
+seed: 13
+
+dataset:
+  name: atomic2020
+  hf_path: allenai/atomic2020
+  cache_dir: data/cache
+  splits: [train, dev, test]
+
+model:
+  name: google/t5-small
+  tokenizer_name: ${experiment.model.name}
+  revision: main
+
+prompting:
+  style: prefix
+  n_shot: 0
+  template_set: canonical
+
+tracking:
+  backend: local
+  mlflow_tracking_uri: file:${project.root}/results/mlruns
+  experiment_name: ${experiment.name}
+
+outputs:
+  create_subdirs: [logs, checkpoints, plots, latex]
