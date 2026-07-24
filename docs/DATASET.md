@@ -1,0 +1,39 @@
+# ATOMIC2020 dataset
+
+This project loads ATOMIC2020 from the official CSV files released by the dataset authors. The loader does **not** download data automatically.
+
+## Download source
+
+Download ATOMIC2020 from the official ATOMIC release URL, <https://maartensap.com/atomic/data/atomic_data.tgz>, following the license terms included with the distribution. The expected archive contains files such as `README.md`, `LICENSE`, `sap2019atomic.pdf`, `v4_atomic_all.csv`, `v4_atomic_all_agg.csv`, `v4_atomic_trn.csv`, `v4_atomic_dev.csv`, and `v4_atomic_tst.csv`.
+
+## Expected directory structure
+
+Extract or copy the split CSV files into the repository under:
+
+```text
+data/atomic/
+  v4_atomic_trn.csv
+  v4_atomic_dev.csv
+  v4_atomic_tst.csv
+```
+
+Additional files from the release may also be present in `data/atomic/`; the loader only reads the three split files above.
+
+## Parsing assumptions
+
+The default dataset backend reads the author-provided CSV format directly:
+
+- The event/head text is read from the `event` column.
+- All remaining ATOMIC relation columns, such as `xNeed`, `xIntent`, `xWant`, `xEffect`, `xReact`, `xAttr`, `oEffect`, `oReact`, and `oWant`, are treated as relation columns.
+- Relation cells are parsed as Python-literal lists, matching the distributed CSV representation, for example `['buy food', 'turn on the stove']`.
+- Empty cells, `[]`, and `none` targets are skipped.
+- Every non-empty `(event, relation, target)` entry is converted into a `RelationInstance` so downstream code can keep using `load_atomic2020_instances(...)` unchanged.
+- Split aliases `dev`, `valid`, and `val` map to `validation`.
+
+## Supported dataset version
+
+The supported layout is the ATOMIC2020 v4 CSV release with split files named `v4_atomic_trn.csv`, `v4_atomic_dev.csv`, and `v4_atomic_tst.csv`.
+
+## HuggingFace backend
+
+HuggingFace support is intentionally separate. The CSV backend is the default and never downloads data. A future or explicit experiment can request `backend="hf"`, but normal production runs should use the local CSV files in `data/atomic/`.

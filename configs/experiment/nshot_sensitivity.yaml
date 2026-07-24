@@ -8,7 +8,7 @@ dataset:
   name: atomic2020
   hf_path: allenai/atomic2020
   cache_dir: data/cache
-  local_path: data/atomic2020
+  local_path: data/atomic
   split: validation
   limit: 20
 

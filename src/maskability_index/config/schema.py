@@ -13,7 +13,7 @@ class DatasetConfig:
     hf_path: str
     cache_dir: str
     backend: str = "auto"
-    local_path: str = "data/atomic2020"
+    local_path: str = "data/atomic"
     splits: list[str] = field(default_factory=lambda: ["train", "validation", "test"])
 
 

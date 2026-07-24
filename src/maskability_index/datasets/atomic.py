@@ -1,33 +1,25 @@
-"""ATOMIC2020 dataset loading and normalization."""
+"""ATOMIC2020 CSV dataset loading and normalization."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import ast
+import csv
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-try:
-    from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
-except ImportError:  # pragma: no cover - exercised only without optional runtime deps
-    Dataset = Any  # type: ignore[misc, assignment]
-    DatasetDict = dict  # type: ignore[assignment]
-
-    def load_dataset(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-untyped-def]
-        """Raise when HuggingFace Datasets is not installed."""
-        raise ImportError("Install the `datasets` package to load ATOMIC2020.")
-
-    def load_from_disk(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-untyped-def]
-        """Raise when HuggingFace Datasets is not installed."""
-        raise ImportError("Install the `datasets` package to load ATOMIC2020.")
-
 ATOMIC2020_HF_PATH = "allenai/atomic2020"
-DEFAULT_LOCAL_ATOMIC2020_PATH = "data/atomic2020"
+DEFAULT_LOCAL_ATOMIC2020_PATH = "data/atomic"
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
-_HEAD_COLUMNS = ("head", "event", "Event", "source", "input", "head_event")
+_OFFICIAL_SPLIT_FILES = {
+    "train": "v4_atomic_trn.csv",
+    "validation": "v4_atomic_dev.csv",
+    "test": "v4_atomic_tst.csv",
+}
+_HEAD_COLUMNS = ("event", "head", "Event", "source", "input", "head_event")
 _ID_COLUMNS = {"id", "ID"}
-_LOCAL_SUFFIX_LOADERS = {".csv": "csv", ".json": "json", ".jsonl": "json"}
-AtomicBackend = Literal["auto", "local", "hf"]
+AtomicBackend = Literal["auto", "csv", "local", "hf"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +34,7 @@ class RelationInstance:
 
 
 def canonical_split_name(split: str) -> str:
-    """Map user-facing split aliases to HuggingFace split names."""
+    """Map user-facing split aliases to canonical split names."""
     return SPLIT_ALIASES.get(split, split)
 
 
@@ -52,46 +44,35 @@ def load_atomic2020_dataset(
     local_path: str | Path | None = None,
     hf_path: str = ATOMIC2020_HF_PATH,
     backend: AtomicBackend = "auto",
-) -> DatasetDict:
-    """Load ATOMIC2020, preferring local converted files and falling back to Hub data.
+) -> Mapping[str, Any]:
+    """Load ATOMIC2020 while preserving the historical dataset-returning API.
 
-    Local data may be a ``datasets`` directory saved with ``save_to_disk`` or a directory
-    containing split files such as ``train.csv``, ``validation.jsonl``, and ``test.parquet``.
-    The HuggingFace path is used only when local data is unavailable or ``backend='hf'``.
+    The default backend reads the official ATOMIC CSV files from ``data/atomic`` and never
+    downloads data. ``backend='hf'`` remains available as an explicit, separate future backend.
     """
     errors: list[str] = []
-    if backend not in {"auto", "local", "hf"}:
-        raise ValueError("backend must be one of 'auto', 'local', or 'hf'.")
+    if backend not in {"auto", "csv", "local", "hf"}:
+        raise ValueError("backend must be one of 'auto', 'csv', 'local', or 'hf'.")
 
-    if backend in {"auto", "local"}:
+    if backend in {"auto", "csv", "local"}:
         candidate = Path(local_path or DEFAULT_LOCAL_ATOMIC2020_PATH)
         if candidate.exists():
             try:
-                return _load_local_atomic2020_dataset(candidate, cache_dir=cache_dir)
-            except Exception as exc:  # pragma: no cover - error message path
-                if backend == "local":
+                return _load_atomic_csv_dataset(candidate)
+            except Exception as exc:
+                if backend in {"csv", "local"}:
                     raise
-                errors.append(f"local {candidate}: {exc}")
-        elif backend == "local":
-            raise FileNotFoundError(f"Local ATOMIC2020 path does not exist: {candidate}")
+                errors.append(f"CSV {candidate}: {exc}")
+        elif backend in {"csv", "local"}:
+            raise FileNotFoundError(f"Local ATOMIC CSV path does not exist: {candidate}")
 
-    if backend in {"auto", "hf"}:
-        try:
-            dataset = load_dataset(hf_path, cache_dir=cache_dir)
-            if not isinstance(dataset, DatasetDict):
-                raise TypeError(
-                    f"Expected DatasetDict for {hf_path!r}, got {type(dataset).__name__}."
-                )
-            return dataset
-        except Exception as exc:
-            if backend == "hf":
-                raise
-            errors.append(f"HuggingFace {hf_path}: {exc}")
+    if backend == "hf":
+        return _load_hf_atomic2020_dataset(hf_path, cache_dir=cache_dir)
 
-    detail = " | ".join(errors) if errors else "no backend candidates were available"
+    detail = " | ".join(errors) if errors else "no local CSV files were available"
     raise RuntimeError(
-        "Could not load ATOMIC2020. Place converted files under "
-        f"{DEFAULT_LOCAL_ATOMIC2020_PATH!r} or provide a loadable HuggingFace dataset. {detail}"
+        "Could not load ATOMIC2020. Download and extract the official CSV files under "
+        f"{DEFAULT_LOCAL_ATOMIC2020_PATH!r}; automatic downloads are disabled. {detail}"
     )
 
 
@@ -107,17 +88,17 @@ def load_atomic2020_instances(
     dataset = load_atomic2020_dataset(
         cache_dir=cache_dir, local_path=local_path, hf_path=hf_path, backend=backend
     )
-    hf_split = canonical_split_name(split)
-    if hf_split not in dataset:
+    canonical_split = canonical_split_name(split)
+    if canonical_split not in dataset:
         available = ", ".join(dataset.keys())
         raise ValueError(f"Split {split!r} is unavailable. Available splits: {available}.")
-    return list(iter_relation_instances(dataset[hf_split], split=split))
+    return list(iter_relation_instances(dataset[canonical_split], split=split))
 
 
 def iter_relation_instances(
-    rows: Iterable[dict[str, Any]], split: str
+    rows: Iterable[Mapping[str, Any]], split: str
 ) -> Iterable[RelationInstance]:
-    """Normalize ATOMIC2020 rows from either long or wide dataset layouts."""
+    """Normalize ATOMIC rows into one instance per ``(event, relation, target)`` pair."""
     for row_index, row in enumerate(rows):
         head = _first_text(row, _HEAD_COLUMNS)
         row_id = str(row.get("id", row.get("ID", row_index)))
@@ -128,11 +109,7 @@ def iter_relation_instances(
                 if candidate:
                     suffix = "" if tail_index == 0 else f":{tail_index}"
                     yield RelationInstance(
-                        _clean(head),
-                        _clean(relation),
-                        _clean(candidate),
-                        split,
-                        f"{row_id}{suffix}",
+                        _clean(head), _clean(relation), candidate, split, f"{row_id}{suffix}"
                     )
             continue
         for key, value in row.items():
@@ -141,66 +118,54 @@ def iter_relation_instances(
             for tail_index, candidate in enumerate(_tails(value)):
                 if candidate:
                     yield RelationInstance(
-                        _clean(head),
-                        _clean(key),
-                        _clean(candidate),
-                        split,
-                        f"{row_id}:{key}:{tail_index}",
+                        _clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}"
                     )
 
 
-def _load_local_atomic2020_dataset(path: Path, cache_dir: str | None = None) -> DatasetDict:
+def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():
-        split = canonical_split_name(path.stem)
-        return DatasetDict({split: _load_local_file(path, cache_dir=cache_dir)})
-
-    if (path / "dataset_dict.json").exists():
-        dataset = load_from_disk(str(path))
-        if not isinstance(dataset, DatasetDict):
-            raise TypeError(f"Expected DatasetDict from {path}, got {type(dataset).__name__}.")
-        return dataset
-
-    data_files: dict[str, str] = {}
-    parquet_files: dict[str, str] = {}
-    for file_path in sorted(path.iterdir()):
-        split = canonical_split_name(file_path.stem)
-        if file_path.suffix in _LOCAL_SUFFIX_LOADERS:
-            data_files[split] = str(file_path)
-        elif file_path.suffix == ".parquet":
-            parquet_files[split] = str(file_path)
-
-    if data_files:
-        extensions = {Path(file_name).suffix for file_name in data_files.values()}
-        if len(extensions) != 1:
-            raise ValueError(
-                "Local CSV/JSON/JSONL split files must use one file type per directory."
-            )
-        dataset = load_dataset(
-            _LOCAL_SUFFIX_LOADERS[extensions.pop()], data_files=data_files, cache_dir=cache_dir
+        return {_split_from_file(path): _read_atomic_csv(path)}
+    dataset: dict[str, list[dict[str, Any]]] = {}
+    for split, filename in _OFFICIAL_SPLIT_FILES.items():
+        file_path = path / filename
+        if file_path.exists():
+            dataset[split] = _read_atomic_csv(file_path)
+    if not dataset:
+        raise FileNotFoundError(
+            f"No official ATOMIC CSV split files found in {path}. Expected: "
+            + ", ".join(_OFFICIAL_SPLIT_FILES.values())
         )
-    elif parquet_files:
-        dataset = load_dataset("parquet", data_files=parquet_files, cache_dir=cache_dir)
-    else:
-        raise FileNotFoundError(f"No ATOMIC2020 split files found in {path}.")
-
-    if not isinstance(dataset, DatasetDict):
-        raise TypeError(f"Expected DatasetDict from {path}, got {type(dataset).__name__}.")
     return dataset
 
 
-def _load_local_file(path: Path, cache_dir: str | None = None) -> Dataset:
-    if path.suffix in _LOCAL_SUFFIX_LOADERS:
-        dataset = load_dataset(
-            _LOCAL_SUFFIX_LOADERS[path.suffix], data_files=str(path), cache_dir=cache_dir
-        )
-    elif path.suffix == ".parquet":
-        dataset = load_dataset("parquet", data_files=str(path), cache_dir=cache_dir)
-    else:
-        raise ValueError(f"Unsupported ATOMIC2020 local file type: {path.suffix}")
-    return dataset["train"]
+def _load_hf_atomic2020_dataset(hf_path: str, cache_dir: str | None = None) -> Mapping[str, Any]:
+    """Load an explicitly requested HuggingFace backend without using it by default."""
+    try:
+        from datasets import DatasetDict, load_dataset
+    except ImportError as exc:  # pragma: no cover - optional future backend only
+        raise ImportError(
+            "Install the `datasets` package to use the HuggingFace ATOMIC backend."
+        ) from exc
+
+    dataset = load_dataset(hf_path, cache_dir=cache_dir)
+    if not isinstance(dataset, DatasetDict):
+        raise TypeError(f"Expected DatasetDict for {hf_path!r}, got {type(dataset).__name__}.")
+    return dataset
 
 
-def _first_text(row: dict[str, Any], keys: tuple[str, ...]) -> str:
+def _split_from_file(path: Path) -> str:
+    for split, filename in _OFFICIAL_SPLIT_FILES.items():
+        if path.name == filename:
+            return split
+    return canonical_split_name(path.stem)
+
+
+def _read_atomic_csv(path: Path) -> list[dict[str, Any]]:
+    with path.open(newline="", encoding="utf-8") as csv_file:
+        return list(csv.DictReader(csv_file))
+
+
+def _first_text(row: Mapping[str, Any], keys: Sequence[str]) -> str:
     for key in keys:
         if key in row and row[key] is not None:
             return str(row[key])
@@ -208,11 +173,21 @@ def _first_text(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 
 def _tails(value: Any) -> list[str]:
+    """Parse official ATOMIC list-valued CSV cells and filter null targets."""
     if value is None:
         return []
     if isinstance(value, str):
-        return [] if value.strip().lower() in {"", "none", "[]"} else [value]
-    if isinstance(value, dict):
+        stripped = value.strip()
+        if stripped.lower() in {"", "none", "[]"}:
+            return []
+        if stripped.startswith("[") and stripped.endswith("]"):
+            try:
+                parsed = ast.literal_eval(stripped)
+            except (SyntaxError, ValueError):
+                return [_clean(stripped)]
+            return _tails(parsed)
+        return [] if stripped.lower() == "none" else [_clean(stripped)]
+    if isinstance(value, Mapping):
         values: list[str] = []
         for nested in value.values():
             values.extend(_tails(nested))
@@ -222,7 +197,8 @@ def _tails(value: Any) -> list[str]:
         for item in value:
             values.extend(_tails(item))
         return values
-    return [str(value)]
+    cleaned = _clean(value)
+    return [] if cleaned.lower() == "none" else [cleaned]
 
 
 def _clean(value: Any) -> str:

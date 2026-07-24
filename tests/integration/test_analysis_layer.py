@@ -12,11 +12,12 @@ from maskability_index.experiments import ExperimentRunner
 
 
 def _write_atomic_fixture(tmp_path: Path) -> Path:
-    data_dir = tmp_path / "atomic2020"
+    data_dir = tmp_path / "atomic"
     data_dir.mkdir(exist_ok=True)
-    (data_dir / "validation.jsonl").write_text(
-        "{\"id\":\"r1\",\"event\":\"PersonX drinks coffee\",\"xWant\":[\"to stay awake\"]}\n"
-        "{\"id\":\"r2\",\"event\":\"rain\",\"Causes\":[\"wet streets\"]}\n",
+    (data_dir / "v4_atomic_dev.csv").write_text(
+        "event,oEffect,oReact,oWant,xAttr,xEffect,xIntent,xNeed,xReact,xWant\n"
+        "PersonX drinks coffee,[],[],[],[],[],[],[],[],['to stay awake']\n"
+        "rain,['wet streets'],[],[],[],[],[],[],[],[]\n",
         encoding="utf-8",
     )
     return data_dir
