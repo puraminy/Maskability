@@ -4,16 +4,13 @@ seed: 13
 output_dir: results/statistical_significance
 
 dataset:
-  backend: synthetic
+  backend: auto
   name: atomic2020
   hf_path: allenai/atomic2020
   cache_dir: data/cache
+  local_path: data/atomic2020
   split: validation
   limit: 20
-  synthetic_rows:
-    - {head: "PersonX drinks coffee", relation: "xWant", tail: "to stay awake", split: "validation", id: "synthetic-1"}
-    - {head: "PersonX loses keys", relation: "xReact", tail: "frustrated", split: "validation", id: "synthetic-2"}
-    - {head: "rain", relation: "Causes", tail: "wet streets", split: "validation", id: "synthetic-3"}
 
 model:
   name: google/t5-small

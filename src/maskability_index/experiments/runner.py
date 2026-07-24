@@ -73,11 +73,15 @@ class ExperimentRunner:
 
     def _load_dataset(self) -> list[RelationInstance]:
         dataset_cfg = self.cfg.experiment.dataset
-        if dataset_cfg.get("backend", "synthetic") == "atomic2020":
+        if dataset_cfg.get("backend", "auto") in {"atomic2020", "auto", "local", "hf"}:
+            configured_backend = dataset_cfg.get("backend", "auto")
+            backend = "auto" if configured_backend == "atomic2020" else configured_backend
             instances = load_atomic2020_instances(
                 dataset_cfg.get("split", "validation"),
                 dataset_cfg.cache_dir,
                 dataset_cfg.hf_path,
+                local_path=dataset_cfg.get("local_path", None),
+                backend=backend,
             )
             return instances[: int(dataset_cfg.get("limit", 20))]
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]

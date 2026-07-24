@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+from maskability_index.datasets import RelationInstance
 
 MODULE_PATH = Path(__file__).resolve().parents[2] / "experiments" / "demo_prompts.py"
 
@@ -18,14 +19,16 @@ def _load_module():
     return module
 
 
-def test_demo_prompt_loader_falls_back_when_hf_dataset_script_is_unsupported(monkeypatch) -> None:
-    """The demo remains runnable when HuggingFace rejects script-backed ATOMIC repos."""
+def test_demo_prompt_loader_uses_production_dataset_loader(monkeypatch) -> None:
+    """The demo should not maintain a bundled fallback dataset."""
     module = _load_module()
+    expected = [RelationInstance("PersonX cooks", "xNeed", "buy food", "train", "1")]
 
-    def unsupported_dataset(*args, **kwargs):
-        raise RuntimeError("Dataset scripts are no longer supported, but found atomic.py")
+    def production_loader(*args, **kwargs):
+        assert kwargs == {"split": "train", "cache_dir": "data/cache"}
+        return expected
 
-    monkeypatch.setattr(module, "load_atomic2020_instances", unsupported_dataset)
-    instances = module._load_demo_instances()
-    assert len(instances) == len(module.DEMO_FALLBACK_INSTANCES)
-    assert {instance.relation for instance in instances}
+    monkeypatch.setattr(module, "load_atomic2020_instances", production_loader)
+
+    assert module._load_demo_instances() == expected
+    assert not hasattr(module, "DEMO_FALLBACK_INSTANCES")
