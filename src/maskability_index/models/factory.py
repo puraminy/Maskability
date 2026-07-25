@@ -31,13 +31,13 @@ class Seq2SeqModelSpec:
 
 
 SUPPORTED_SEQ2SEQ_MODELS: dict[str, Seq2SeqModelSpec] = {
-    "google/t5-small": Seq2SeqModelSpec(
+    "google-t5/t5-small": Seq2SeqModelSpec(
         AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
     ),
-    "google/t5-base": Seq2SeqModelSpec(
+    "google-t5/t5-base": Seq2SeqModelSpec(
         AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
     ),
-    "google/t5-large": Seq2SeqModelSpec(
+    "google-t5/t5-large": Seq2SeqModelSpec(
         AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
     ),
 }
