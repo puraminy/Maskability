@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments for the DepthRank experiment."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--model", default="google/t5-base", help="HuggingFace model or checkpoint path."
+        "--model", default="google-t5/t5-base", help="HuggingFace model or checkpoint path."
     )
     parser.add_argument("--tokenizer", default=None, help="Optional tokenizer name or path.")
     parser.add_argument("--revision", default="main", help="Model revision.")
