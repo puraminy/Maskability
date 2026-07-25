@@ -6,15 +6,26 @@ from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
+class DatasetSamplingConfig:
+    """Relation-balanced evaluation sampling configuration."""
+
+    strategy: str = "deterministic"
+    instances_per_relation: int | None = None
+    seed: int | None = None
+
+
+@dataclass(frozen=True)
 class DatasetConfig:
-    """Dataset acquisition and split configuration."""
+    """Dataset acquisition, split, and sampling configuration."""
 
     name: str
     hf_path: str
     cache_dir: str
     backend: str = "auto"
     local_path: str = "data/atomic"
+    split: str = "validation"
     splits: list[str] = field(default_factory=lambda: ["train", "validation", "test"])
+    sampling: DatasetSamplingConfig = field(default_factory=DatasetSamplingConfig)
 
 
 @dataclass(frozen=True)
@@ -28,7 +39,7 @@ class ModelConfig:
 
 @dataclass(frozen=True)
 class PromptingConfig:
-    """Prompt construction configuration without hardcoded scientific templates."""
+    """Prompt construction configuration independent of evaluation sampling."""
 
     style: str
     n_shot: int

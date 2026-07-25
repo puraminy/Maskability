@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ast
 import csv
+import random
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +54,46 @@ def canonical_split_name(split: str) -> str:
     """Map user-facing split aliases to canonical split names."""
     return SPLIT_ALIASES.get(split, split)
 
+
+def sample_instances_per_relation(
+    instances: Sequence[RelationInstance],
+    *,
+    instances_per_relation: int | None = None,
+    strategy: str = "deterministic",
+    seed: int | None = None,
+) -> list[RelationInstance]:
+    """Sample a configurable number of instances independently for each relation.
+
+    ``deterministic`` preserves the loaded dataset order within each relation.
+    ``random`` uses a local RNG seeded by ``seed`` so reviewer robustness sweeps are
+    reproducible without mutating global random state. Relations with fewer than the
+    requested number of examples keep all available examples.
+    """
+    if instances_per_relation is None:
+        return list(instances)
+    if instances_per_relation < 1:
+        raise ValueError("instances_per_relation must be at least 1 when configured.")
+    if strategy not in {"deterministic", "random"}:
+        raise ValueError("sampling strategy must be 'deterministic' or 'random'.")
+
+    by_relation: dict[str, list[RelationInstance]] = defaultdict(list)
+    relation_order: list[str] = []
+    for instance in instances:
+        if instance.relation not in by_relation:
+            relation_order.append(instance.relation)
+        by_relation[instance.relation].append(instance)
+
+    rng = random.Random(seed)
+    sampled: list[RelationInstance] = []
+    for relation in relation_order:
+        relation_instances = list(by_relation[relation])
+        if strategy == "random" and len(relation_instances) > instances_per_relation:
+            selected = rng.sample(relation_instances, instances_per_relation)
+            selected.sort(key=relation_instances.index)
+        else:
+            selected = relation_instances[:instances_per_relation]
+        sampled.extend(selected)
+    return sampled
 
 def load_atomic2020_dataset(
     cache_dir: str | None = None,

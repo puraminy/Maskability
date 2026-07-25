@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from maskability_index.datasets.atomic import RelationInstance, load_atomic2020_instances
+from maskability_index.datasets.atomic import (
+    RelationInstance,
+    load_atomic2020_instances,
+    sample_instances_per_relation,
+)
 
 
 def _write_atomic_csv(path: Path) -> None:
@@ -34,3 +38,41 @@ def test_load_atomic2020_instances_does_not_download_without_local_csv(tmp_path:
     """The default backend fails locally instead of falling back to a download."""
     with pytest.raises(RuntimeError, match="automatic downloads are disabled"):
         load_atomic2020_instances(local_path=tmp_path / "missing")
+
+
+def test_sample_instances_per_relation_keeps_each_relation() -> None:
+    """Deterministic sampling applies the cap within each relation, not globally."""
+    instances = [
+        RelationInstance("h1", "xNeed", "t1", "validation", "1"),
+        RelationInstance("h2", "xNeed", "t2", "validation", "2"),
+        RelationInstance("h3", "xAttr", "t3", "validation", "3"),
+        RelationInstance("h4", "xAttr", "t4", "validation", "4"),
+    ]
+
+    sampled = sample_instances_per_relation(instances, instances_per_relation=1)
+
+    assert sampled == [instances[0], instances[2]]
+
+
+def test_random_sample_instances_per_relation_is_seeded() -> None:
+    """Random relation-balanced sampling is reproducible for reviewer sweeps."""
+    instances = [
+        RelationInstance(f"h{i}", relation, f"t{i}", "validation", str(i))
+        for relation in ("xNeed", "xAttr")
+        for i in range(6)
+    ]
+
+    first = sample_instances_per_relation(
+        instances, instances_per_relation=2, strategy="random", seed=7
+    )
+    second = sample_instances_per_relation(
+        instances, instances_per_relation=2, strategy="random", seed=7
+    )
+    different = sample_instances_per_relation(
+        instances, instances_per_relation=2, strategy="random", seed=8
+    )
+
+    assert first == second
+    assert first != different
+    assert {instance.relation for instance in first} == {"xNeed", "xAttr"}
+    assert len(first) == 4

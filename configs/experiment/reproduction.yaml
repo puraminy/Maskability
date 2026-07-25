@@ -10,7 +10,10 @@ dataset:
   cache_dir: data/cache
   local_path: data/atomic
   split: validation
-  limit: 20
+  sampling:
+    strategy: deterministic
+    instances_per_relation: 5
+    seed: ${experiment.seed}
 
 model:
   name: google-t5/t5-base

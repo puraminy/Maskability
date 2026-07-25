@@ -12,7 +12,11 @@ import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-from maskability_index.datasets.atomic import RelationInstance, load_atomic2020_instances
+from maskability_index.datasets.atomic import (
+    RelationInstance,
+    load_atomic2020_instances,
+    sample_instances_per_relation,
+)
 from maskability_index.depthrank import DepthRankResult
 from maskability_index.evaluation import update_results_index
 from maskability_index.maskability import MaskabilityCalculator
@@ -92,8 +96,21 @@ class ExperimentRunner:
                 local_path=dataset_cfg.get("local_path", None),
                 backend=backend,
             )
-            return instances[: int(dataset_cfg.get("limit", 20))]
+            return self._sample_dataset(instances)
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
+
+    def _sample_dataset(self, instances: list[RelationInstance]) -> list[RelationInstance]:
+        sampling = self.cfg.experiment.dataset.get("sampling", None)
+        if sampling is None:
+            legacy_limit = self.cfg.experiment.dataset.get("limit", None)
+            return instances if legacy_limit is None else instances[: int(legacy_limit)]
+        seed = sampling.get("seed", self.cfg.experiment.seed)
+        return sample_instances_per_relation(
+            instances,
+            instances_per_relation=sampling.get("instances_per_relation", None),
+            strategy=str(sampling.get("strategy", "deterministic")),
+            seed=None if seed is None else int(seed),
+        )
 
     def _create_model_bundle(self):
         model_cfg = self.cfg.experiment.model
@@ -216,17 +233,17 @@ class ExperimentRunner:
                 or STYLE_ALIASES.get(str(row["style"]), str(row["style"]))
             )
             relation_scores[family].append(float(row["depthrank"]))
-        sample_size = int(self.cfg.experiment.prompting.get("n_shot", 0)) or min(
-            len(value["prompting"]) for value in by_relation.values()
-        )
-        return [
-            asdict(
-                calc.compute(
-                    relation, values["prompting"], values["masked_prompting"], sample_size
+        rows: list[dict[str, Any]] = []
+        for relation, values in sorted(by_relation.items()):
+            sample_size = min(len(values["prompting"]), len(values["masked_prompting"]))
+            rows.append(
+                asdict(
+                    calc.compute(
+                        relation, values["prompting"], values["masked_prompting"], sample_size
+                    )
                 )
             )
-            for relation, values in sorted(by_relation.items())
-        ]
+        return rows
 
     def _compute_statistics(self, mi_scores: list[dict[str, Any]], start: float) -> dict[str, Any]:
         mi = [float(row["maskability_index"]) for row in mi_scores]
