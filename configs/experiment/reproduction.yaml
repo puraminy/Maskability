@@ -13,7 +13,7 @@ dataset:
   limit: 20
 
 model:
-  name: google-t5/t5-small
+  name: google-t5/t5-base
   tokenizer_name: ${experiment.model.name}
   revision: main
 
