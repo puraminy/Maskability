@@ -95,6 +95,28 @@ def sample_instances_per_relation(
         sampled.extend(selected)
     return sampled
 
+
+def filter_instances_by_relations(
+    instances: Sequence[RelationInstance],
+    *,
+    mode: str = "dataset",
+    selected: Sequence[str] | None = None,
+) -> list[RelationInstance]:
+    """Select relations explicitly and reproducibly.
+
+    Modes:
+    - ``dataset`` and ``all`` keep every relation present in the loaded dataset.
+    - ``selected`` keeps only the configured relation names, preserving dataset order.
+    """
+    if mode not in {"all", "selected", "dataset"}:
+        raise ValueError("relations.mode must be one of 'all', 'selected', or 'dataset'.")
+    if mode in {"all", "dataset"}:
+        return list(instances)
+    selected_set = set(selected or [])
+    if not selected_set:
+        raise ValueError("relations.selected must be non-empty when relations.mode='selected'.")
+    return [instance for instance in instances if instance.relation in selected_set]
+
 def load_atomic2020_dataset(
     cache_dir: str | None = None,
     *,

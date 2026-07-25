@@ -10,10 +10,11 @@ from typing import Any
 
 import hydra
 import pandas as pd
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from maskability_index.datasets.atomic import (
     RelationInstance,
+    filter_instances_by_relations,
     load_atomic2020_instances,
     sample_instances_per_relation,
 )
@@ -22,7 +23,11 @@ from maskability_index.evaluation import update_results_index
 from maskability_index.maskability import MaskabilityCalculator
 from maskability_index.models.factory import create_seq2seq_model
 from maskability_index.plotting import generate_plots
-from maskability_index.prompting import MaskedPromptBuilder, PrefixPromptBuilder
+from maskability_index.prompting import (
+    FewShotPromptBuilder,
+    MaskedPromptBuilder,
+    PrefixPromptBuilder,
+)
 from maskability_index.statistics import bootstrap_ci, correlations, permutation_test
 from maskability_index.utils.io import ensure_output_tree, write_config, write_json
 from maskability_index.utils.logging import configure_logging
@@ -54,11 +59,64 @@ class ExperimentRunner:
 
     def run(self) -> Path:
         """Execute dataset, prompting, inference, DepthRank, MI, stats, plots, and tables."""
-        start = time.time()
-        ensure_output_tree(self.output_dir, OUTPUT_SUBDIRS)
-        configure_logging(self.output_dir / "logs" / "log.txt")
-        set_seed(int(self.cfg.experiment.seed))
+        if self.cfg.experiment.get("sweep", {}).get("enabled", False):
+            return self.run_sweeps()
+        return self._run_single(self.cfg, self.output_dir)
+
+    def run_sweeps(self) -> Path:
+        """Execute configured sweep dimensions and write aggregate summaries."""
+        ensure_output_tree(
+            self.output_dir, ["sensitivity", "thresholds", "models", "prompts", "latex"]
+        )
         write_config(self.output_dir / "config.yaml", self.cfg)
+        sweep_rows: list[dict[str, Any]] = []
+        for dimension, values, subdir in self._sweep_dimensions():
+            for value in values:
+                child_cfg = OmegaConf.create(OmegaConf.to_container(self.cfg, resolve=True))
+                label = self._sweep_label(dimension, value)
+                self._apply_sweep_value(child_cfg, dimension, value)
+                child_cfg.experiment.sweep.enabled = False
+                child_cfg.experiment.output_dir = str(self.output_dir / subdir / label)
+                out = ExperimentRunner(child_cfg, child_cfg.experiment.output_dir).run()
+                mi_df = pd.read_csv(out / "mi_scores.csv")
+                ci = bootstrap_ci(
+                    mi_df["maskability_index"].tolist(),
+                    seed=int(child_cfg.experiment.seed),
+                    iterations=int(child_cfg.experiment.analysis.bootstrap_iterations),
+                )
+                sweep_rows.append(
+                    {
+                        "sweep": dimension,
+                        "value": value,
+                        "run_dir": str(out),
+                        "relations": int(len(mi_df)),
+                        "mean_MI": float(mi_df["maskability_index"].mean()),
+                        "std_MI": float(mi_df["maskability_index"].std(ddof=0)),
+                        "bootstrap_CI_lower": ci["lower"],
+                        "bootstrap_CI_upper": ci["upper"],
+                    }
+                )
+        summary = pd.DataFrame(sweep_rows)
+        summary.to_csv(self.output_dir / "sweep_summary.csv", index=False)
+        (self.output_dir / "latex" / "sweep_summary.tex").write_text(
+            summary.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
+        )
+        for dimension in sorted(summary["sweep"].unique()) if not summary.empty else []:
+            dim_df = summary[summary["sweep"] == dimension]
+            name = self._summary_name(dimension)
+            dim_df.to_csv(self.output_dir / f"{name}.csv", index=False)
+            (self.output_dir / "latex" / f"{name}.tex").write_text(
+                dim_df.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
+            )
+        return self.output_dir
+
+    def _run_single(self, cfg: DictConfig, output_dir: Path) -> Path:
+        """Execute one resolved experiment configuration."""
+        start = time.time()
+        ensure_output_tree(output_dir, OUTPUT_SUBDIRS)
+        configure_logging(output_dir / "logs" / "log.txt")
+        set_seed(int(cfg.experiment.seed))
+        write_config(output_dir / "config.yaml", cfg)
         instances = self._load_dataset()
         bundle = self._create_model_bundle()
         device = self._device()
@@ -69,20 +127,21 @@ class ExperimentRunner:
         predictions = self._build_predictions(depthrank, bundle.model, bundle.tokenizer, device)
         mi_scores = self._compute_mi(depthrank)
         metrics = self._compute_statistics(mi_scores, start)
-        self._write_csv(self.output_dir / "predictions.csv", predictions)
-        self._write_csv(self.output_dir / "depthrank.csv", depthrank)
+        self._write_csv(output_dir / "predictions.csv", predictions)
+        self._write_csv(output_dir / "depthrank.csv", depthrank)
         mi_df = pd.DataFrame(mi_scores)
-        mi_df.attrs["threshold"] = float(self.cfg.experiment.analysis.threshold)
-        mi_df.to_csv(self.output_dir / "mi_scores.csv", index=False)
-        write_json(self.output_dir / "metrics.json", metrics)
-        generate_plots(mi_df, self.output_dir / "plots")
+        mi_df.attrs["threshold"] = float(cfg.experiment.analysis.threshold)
+        mi_df.to_csv(output_dir / "mi_scores.csv", index=False)
+        write_json(output_dir / "metrics.json", metrics)
+        self._write_summary_tables(mi_df, output_dir)
+        generate_plots(mi_df, output_dir / "plots")
         self._write_latex(mi_df)
-        update_results_index(self.output_dir, Path("results") / "index.json")
-        (self.output_dir / "checkpoint" / "README.txt").write_text(
+        update_results_index(output_dir, Path("results") / "index.json")
+        (output_dir / "checkpoint" / "README.txt").write_text(
             "Checkpoint directory reserved for configured HuggingFace training outputs.\n",
             encoding="utf-8",
         )
-        return self.output_dir
+        return output_dir
 
     def _load_dataset(self) -> list[RelationInstance]:
         dataset_cfg = self.cfg.experiment.dataset
@@ -96,8 +155,18 @@ class ExperimentRunner:
                 local_path=dataset_cfg.get("local_path", None),
                 backend=backend,
             )
-            return self._sample_dataset(instances)
+            return self._limit_evaluation_instances(
+                self._sample_dataset(self._filter_relations(instances))
+            )
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
+
+    def _filter_relations(self, instances: list[RelationInstance]) -> list[RelationInstance]:
+        relations_cfg = self.cfg.experiment.get("relations", {})
+        return filter_instances_by_relations(
+            instances,
+            mode=str(relations_cfg.get("mode", "dataset")),
+            selected=list(relations_cfg.get("selected", [])),
+        )
 
     def _sample_dataset(self, instances: list[RelationInstance]) -> list[RelationInstance]:
         sampling = self.cfg.experiment.dataset.get("sampling", None)
@@ -110,6 +179,19 @@ class ExperimentRunner:
             instances_per_relation=sampling.get("instances_per_relation", None),
             strategy=str(sampling.get("strategy", "deterministic")),
             seed=None if seed is None else int(seed),
+        )
+
+    def _limit_evaluation_instances(
+        self, instances: list[RelationInstance]
+    ) -> list[RelationInstance]:
+        limit = self.cfg.experiment.get("evaluation", {}).get("max_instances_per_relation", "all")
+        if str(limit).lower() == "all" or limit is None:
+            return instances
+        return sample_instances_per_relation(
+            instances,
+            instances_per_relation=int(limit),
+            strategy="deterministic",
+            seed=int(self.cfg.experiment.seed),
         )
 
     def _create_model_bundle(self):
@@ -141,7 +223,42 @@ class ExperimentRunner:
             families = ("prompting", "masked_prompting")
         else:
             families = (STYLE_ALIASES.get(style, style),)
-        return {family: TEMPLATE_FAMILIES[family]() for family in families}
+        demonstrations = self._demonstrations()
+        builders: dict[str, Any] = {}
+        for family in families:
+            builder = TEMPLATE_FAMILIES[family]()
+            if demonstrations:
+                builder = FewShotPromptBuilder(
+                    demonstrations=tuple(demonstrations),
+                    base_builder=builder,
+                )
+            builders[family] = builder
+        return builders
+
+    def _demonstrations(self) -> list[RelationInstance]:
+        demo_cfg = self.cfg.experiment.prompting.get("demonstrations", {})
+        if not demo_cfg.get("enabled", False):
+            return []
+        n = int(demo_cfg.get("num_examples", self.cfg.experiment.prompting.get("n_shot", 0)))
+        if n < 1:
+            return []
+        instances = self._filter_relations(
+            load_atomic2020_instances(
+                self.cfg.experiment.dataset.get("split", "validation"),
+                self.cfg.experiment.dataset.cache_dir,
+                self.cfg.experiment.dataset.hf_path,
+                local_path=self.cfg.experiment.dataset.get("local_path", None),
+                backend="auto"
+                if self.cfg.experiment.dataset.get("backend", "auto") == "atomic2020"
+                else self.cfg.experiment.dataset.get("backend", "auto"),
+            )
+        )
+        return sample_instances_per_relation(
+            instances,
+            instances_per_relation=n,
+            strategy=str(demo_cfg.get("strategy", "deterministic")),
+            seed=int(demo_cfg.get("seed", self.cfg.experiment.seed)),
+        )[:n]
 
     def _compute_depthrank(
         self, instances: list[RelationInstance], calculator: Any
@@ -267,6 +384,83 @@ class ExperimentRunner:
             key: asdict(value) for key, value in correlations(drp, drm).items()
         }
         return stats_payload
+
+    def _write_summary_tables(self, mi_df: pd.DataFrame, output_dir: Path) -> None:
+        """Write sample-size summary tables for every single run."""
+        summary = (
+            mi_df.groupby("sample_size", as_index=False)["maskability_index"]
+            .agg(mean_MI="mean", std_MI=lambda s: float(s.std(ddof=0)))
+        )
+        rows = []
+        for sample_size in summary["sample_size"].tolist():
+            values = mi_df.loc[mi_df["sample_size"] == sample_size, "maskability_index"].tolist()
+            ci = bootstrap_ci(
+                values,
+                seed=int(self.cfg.experiment.seed),
+                iterations=int(self.cfg.experiment.analysis.bootstrap_iterations),
+            )
+            rows.append(
+                {
+                    "sample_size": sample_size,
+                    "bootstrap_CI_lower": ci["lower"],
+                    "bootstrap_CI_upper": ci["upper"],
+                }
+            )
+        summary = summary.merge(pd.DataFrame(rows), on="sample_size")
+        summary.to_csv(output_dir / "sample_size_summary.csv", index=False)
+        (output_dir / "latex" / "sample_size_summary.tex").write_text(
+            summary.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
+        )
+
+    def _sweep_dimensions(self) -> list[tuple[str, list[Any], str]]:
+        analysis = self.cfg.experiment.analysis
+        configured = self.cfg.experiment.get("sweep", {}).get("dimensions", [])
+        specs = {
+            "instances_per_relation": (
+                list(analysis.get("instances_per_relation", [])),
+                "sensitivity",
+            ),
+            "threshold": (list(analysis.get("thresholds", [])), "thresholds"),
+            "model": (list(analysis.get("models", [])), "models"),
+            "prompt_variant": (list(analysis.get("prompt_variants", [])), "prompts"),
+            "demonstrations": (list(analysis.get("n_shots", [])), "sensitivity"),
+        }
+        return [
+            (dimension, values, subdir)
+            for dimension, (values, subdir) in specs.items()
+            if dimension in configured and values
+        ]
+
+    def _apply_sweep_value(self, cfg: DictConfig, dimension: str, value: Any) -> None:
+        if dimension == "instances_per_relation":
+            cfg.experiment.dataset.sampling.instances_per_relation = int(value)
+            cfg.experiment.evaluation.max_instances_per_relation = "all"
+        elif dimension == "threshold":
+            cfg.experiment.analysis.threshold = float(value)
+        elif dimension == "model":
+            cfg.experiment.model.name = str(value)
+            cfg.experiment.model.tokenizer_name = str(value)
+        elif dimension == "prompt_variant":
+            cfg.experiment.prompting.template_set = str(value)
+        elif dimension == "demonstrations":
+            cfg.experiment.prompting.demonstrations.enabled = int(value) > 0
+            cfg.experiment.prompting.demonstrations.num_examples = int(value)
+
+    @staticmethod
+    def _sweep_label(dimension: str, value: Any) -> str:
+        safe = str(value).replace("/", "_").replace(".", "_")
+        prefix = "instances" if dimension == "instances_per_relation" else dimension
+        return f"{prefix}_{safe}"
+
+    @staticmethod
+    def _summary_name(dimension: str) -> str:
+        return {
+            "instances_per_relation": "sample_size_summary",
+            "threshold": "threshold_summary",
+            "model": "model_summary",
+            "prompt_variant": "prompt_summary",
+            "demonstrations": "demonstration_summary",
+        }[dimension]
 
     def _write_latex(self, mi_df: pd.DataFrame) -> None:
         latex = self.output_dir / "latex"

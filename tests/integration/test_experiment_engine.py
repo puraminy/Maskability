@@ -66,6 +66,39 @@ def test_configuration_overrides_work(tmp_path: Path) -> None:
     assert "threshold: 0.5" in (out / "config.yaml").read_text()
 
 
+def test_relation_filtering_and_evaluation_limit_are_independent(tmp_path: Path) -> None:
+    """Selected relations and evaluation caps affect MI sample size without prompt changes."""
+    cfg = _cfg(tmp_path)
+    cfg.experiment.relations.mode = "selected"
+    cfg.experiment.relations.selected = ["xWant"]
+    cfg.experiment.dataset.sampling.instances_per_relation = None
+    cfg.experiment.evaluation.max_instances_per_relation = 1
+
+    out = ExperimentRunner(cfg).run()
+    mi = (out / "mi_scores.csv").read_text()
+
+    assert "xWant" in mi
+    assert "rain" not in mi
+    assert ",1," in mi
+
+
+def test_sweep_engine_creates_complete_child_outputs_and_summary(tmp_path: Path) -> None:
+    """The generic sweep engine writes complete child runs and aggregate tables."""
+    cfg = _cfg(tmp_path)
+    cfg.experiment.output_dir = str(tmp_path / "sweep")
+    cfg.experiment.sweep.enabled = True
+    cfg.experiment.sweep.dimensions = ["instances_per_relation", "threshold"]
+    cfg.experiment.analysis.instances_per_relation = [1]
+    cfg.experiment.analysis.thresholds = [0.2, 0.4]
+
+    out = ExperimentRunner(cfg).run()
+
+    assert (out / "sensitivity" / "instances_1" / "mi_scores.csv").exists()
+    assert (out / "thresholds" / "threshold_0_2" / "mi_scores.csv").exists()
+    assert (out / "threshold_summary.csv").exists()
+    assert (out / "sample_size_summary.csv").exists()
+
+
 def test_registry_register_run_list(tmp_path: Path) -> None:
     """The experiment registry exposes register, run, and list."""
     cfg = _cfg(tmp_path)

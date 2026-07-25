@@ -1,12 +1,19 @@
 name: milestone1_infrastructure
 seed: 13
 
+relations:
+  mode: dataset
+  selected: []
+
 dataset:
   name: atomic2020
   hf_path: allenai/atomic2020
   cache_dir: data/cache
   local_path: data/atomic
   splits: [train, validation, test]
+
+evaluation:
+  max_instances_per_relation: all
 
 model:
   name: google-t5/t5-small
@@ -17,6 +24,11 @@ prompting:
   style: prefix
   n_shot: 0
   template_set: canonical
+  demonstrations:
+    enabled: false
+    num_examples: 0
+    strategy: deterministic
+    seed: ${experiment.seed}
 
 tracking:
   backend: local
@@ -25,3 +37,18 @@ tracking:
 
 outputs:
   create_subdirs: [logs, checkpoints, plots, latex]
+
+sweep:
+  enabled: false
+  dimensions: []
+
+analysis:
+  threshold: 0.30
+  bootstrap_iterations: 100
+  permutation_iterations: 100
+  thresholds: [0.20, 0.30, 0.40, 0.50]
+  instances_per_relation: [5, 10, 20, 50, 100, 200]
+  n_shots: [0, 1, 3, 5, 10]
+  models: [google-t5/t5-small, google-t5/t5-base, google-t5/t5-large]
+  baselines: []
+  prompt_variants: [canonical, alternative]
