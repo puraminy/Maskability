@@ -8,7 +8,7 @@ The experiment engine provides one configuration-driven path for paper reproduct
 
 1. load the Hydra configuration;
 2. create the result directory tree;
-3. initialize the configured dataset;
+3. initialize the configured dataset and apply relation-balanced sampling;
 4. build prefix and masked prompts through the prompt builders;
 5. reserve the configured checkpoint directory for fine-tuning artifacts;
 6. compute or load DepthRank-compatible scores;
@@ -30,7 +30,7 @@ seed: 13
 output_dir: results/threshold_sensitivity
 ```
 
-Then configure dataset, prompting, model, training, DepthRank, and analysis sections. Existing examples include:
+Then configure dataset, prompting, model, training, DepthRank, and analysis sections. Dataset sampling is configured separately from prompt construction; `dataset.sampling.instances_per_relation` controls evaluation sample size, while `prompting.n_shot` is reserved for zero-shot/few-shot demonstration count. Existing examples include:
 
 - `reproduction.yaml`
 - `threshold_sensitivity.yaml`
@@ -54,7 +54,7 @@ The reproduction script is a thin wrapper around the same runner:
 python experiments/reproduce_paper.py
 ```
 
-By default the supplied configurations route DepthRank through the teacher-forced seq2seq model implementation used by `experiments/run_maskability.py`. Integration tests patch the model factory with a local test double, but production experiments must load a configured model through `create_seq2seq_model()`; no deterministic fixture or synthetic DepthRank backend is used by the runner.
+By default the reproduction configuration uses `google-t5/t5-base`, evaluates a deterministic number of examples per relation, and routes DepthRank through the teacher-forced seq2seq model implementation used by `experiments/run_maskability.py`. Integration tests patch the model factory with a local test double, but production experiments must load a configured model through `create_seq2seq_model()`; no deterministic fixture or synthetic DepthRank backend is used by the runner.
 
 ## Outputs
 

@@ -30,6 +30,21 @@ The default dataset backend reads the author-provided CSV format directly:
 - Every non-empty `(event, relation, target)` entry is converted into a `RelationInstance` so downstream code can keep using `load_atomic2020_instances(...)` unchanged.
 - Split aliases `dev`, `valid`, and `val` map to `validation`.
 
+## Relation-balanced sampling
+
+Experiment configs may define `dataset.sampling` to select evaluation examples after split loading and normalization:
+
+```yaml
+dataset:
+  split: validation
+  sampling:
+    strategy: deterministic  # deterministic | random
+    instances_per_relation: 5
+    seed: ${experiment.seed}
+```
+
+Sampling is applied independently within each relation, so a global truncation cannot drop later relation columns such as `xAttr`. `deterministic` preserves the official CSV order and takes the first configured examples per relation. `random` uses the configured seed through a local RNG, which supports reproducible reviewer robustness, sample-size sensitivity, and multi-seed runs. Relations with fewer available examples keep all available examples rather than being discarded.
+
 ## Supported dataset version
 
 The supported layout is the ATOMIC2020 v4 CSV release with split files named `v4_atomic_trn.csv`, `v4_atomic_dev.csv`, and `v4_atomic_tst.csv`.
