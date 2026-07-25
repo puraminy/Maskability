@@ -96,6 +96,58 @@ def sample_instances_per_relation(
     return sampled
 
 
+
+def sample_heads_per_relation(
+    instances: Sequence[RelationInstance],
+    *,
+    heads_per_relation: int | None = None,
+    max_reference_tails: int | None = None,
+    strategy: str = "deterministic",
+    seed: int | None = None,
+) -> list[RelationInstance]:
+    """Sample held-out evaluation heads independently from few-shot examples.
+
+    DepthRank/MI evaluation is defined over heads, not raw triples. This helper
+    selects up to ``heads_per_relation`` distinct heads per relation, then keeps
+    up to ``max_reference_tails`` tails for each selected head.
+    """
+    if heads_per_relation is not None and heads_per_relation < 1:
+        raise ValueError("heads_per_relation must be at least 1 when configured.")
+    if max_reference_tails is not None and max_reference_tails < 1:
+        raise ValueError("max_reference_tails must be at least 1 when configured.")
+    if strategy not in {"deterministic", "random"}:
+        raise ValueError("sampling strategy must be 'deterministic' or 'random'.")
+
+    by_relation_head: dict[str, dict[str, list[RelationInstance]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    relation_order: list[str] = []
+    head_order: dict[str, list[str]] = defaultdict(list)
+    for instance in instances:
+        if instance.relation not in by_relation_head:
+            relation_order.append(instance.relation)
+        if instance.head not in by_relation_head[instance.relation]:
+            head_order[instance.relation].append(instance.head)
+        by_relation_head[instance.relation][instance.head].append(instance)
+
+    rng = random.Random(seed)
+    sampled: list[RelationInstance] = []
+    for relation in relation_order:
+        heads = list(head_order[relation])
+        if (
+            heads_per_relation is not None
+            and strategy == "random"
+            and len(heads) > heads_per_relation
+        ):
+            selected_heads = rng.sample(heads, heads_per_relation)
+            selected_heads.sort(key=heads.index)
+        else:
+            selected_heads = heads[:heads_per_relation]
+        for head in selected_heads:
+            tails = by_relation_head[relation][head]
+            sampled.extend(tails[:max_reference_tails])
+    return sampled
+
 def filter_instances_by_relations(
     instances: Sequence[RelationInstance],
     *,
@@ -105,12 +157,12 @@ def filter_instances_by_relations(
     """Select relations explicitly and reproducibly.
 
     Modes:
-    - ``dataset`` and ``all`` keep every relation present in the loaded dataset.
+    - ``all`` keeps every relation present in the loaded dataset.
     - ``selected`` keeps only the configured relation names, preserving dataset order.
     """
-    if mode not in {"all", "selected", "dataset"}:
-        raise ValueError("relations.mode must be one of 'all', 'selected', or 'dataset'.")
-    if mode in {"all", "dataset"}:
+    if mode not in {"all", "selected"}:
+        raise ValueError("relations.mode must be one of 'all' or 'selected'.")
+    if mode == "all":
         return list(instances)
     selected_set = set(selected or [])
     if not selected_set:

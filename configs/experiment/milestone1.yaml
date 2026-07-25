@@ -2,8 +2,17 @@ name: milestone1_infrastructure
 seed: 13
 
 relations:
-  mode: dataset
-  selected: []
+  mode: selected
+  selected:
+    - AtLocation
+    - ObjectUse
+    - xAttr
+    - CapableOf
+    - HasProperty
+    - FilledBy
+    - xIntent
+    - xNeed
+    - xWant
 
 dataset:
   name: atomic2020

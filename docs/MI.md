@@ -4,7 +4,7 @@ The Maskability Index (MI) implementation lives in `src/maskability_index/maskab
 
 ## Mathematical correspondence
 
-For relation `r` and sample size `n`, the manuscript defines:
+For relation `r` and few-shot size `n`; held-out evaluation size is separate, the manuscript defines:
 
 \[
 MI(r,n)=\frac{DR_{Prompting}(r,n)-DR_{MaskedPrompting}(r,n)}{DR_{Prompting}(r,n)}.

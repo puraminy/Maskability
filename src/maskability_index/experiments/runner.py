@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import logging
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -16,6 +17,7 @@ from maskability_index.datasets.atomic import (
     RelationInstance,
     filter_instances_by_relations,
     load_atomic2020_instances,
+    sample_heads_per_relation,
     sample_instances_per_relation,
 )
 from maskability_index.depthrank import DepthRankResult
@@ -43,6 +45,8 @@ PLOT_NAMES = [
     "model_comparison",
     "baseline_comparison",
 ]
+LOGGER = logging.getLogger(__name__)
+
 TEMPLATE_FAMILIES = {"prompting": PrefixPromptBuilder, "masked_prompting": MaskedPromptBuilder}
 STYLE_ALIASES = {"prefix": "prompting", "masked": "masked_prompting"}
 
@@ -155,18 +159,31 @@ class ExperimentRunner:
                 local_path=dataset_cfg.get("local_path", None),
                 backend=backend,
             )
-            return self._limit_evaluation_instances(
-                self._sample_dataset(self._filter_relations(instances))
-            )
+            filtered = self._filter_relations(instances)
+            self._report_missing_relations(instances, filtered)
+            return self._sample_evaluation(filtered)
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
 
     def _filter_relations(self, instances: list[RelationInstance]) -> list[RelationInstance]:
         relations_cfg = self.cfg.experiment.get("relations", {})
         return filter_instances_by_relations(
             instances,
-            mode=str(relations_cfg.get("mode", "dataset")),
+            mode=str(relations_cfg.get("mode", "selected")),
             selected=list(relations_cfg.get("selected", [])),
         )
+
+    def _report_missing_relations(
+        self, all_instances: list[RelationInstance], filtered: list[RelationInstance]
+    ) -> None:
+        relations_cfg = self.cfg.experiment.get("relations", {})
+        if str(relations_cfg.get("mode", "selected")) != "selected":
+            return
+        available = {instance.relation for instance in all_instances}
+        selected = list(relations_cfg.get("selected", []))
+        missing = [relation for relation in selected if relation not in available]
+        if missing:
+            LOGGER.warning("Missing configured relations with no loaded examples: %s", missing)
+
 
     def _sample_dataset(self, instances: list[RelationInstance]) -> list[RelationInstance]:
         sampling = self.cfg.experiment.dataset.get("sampling", None)
@@ -181,18 +198,46 @@ class ExperimentRunner:
             seed=None if seed is None else int(seed),
         )
 
-    def _limit_evaluation_instances(
-        self, instances: list[RelationInstance]
-    ) -> list[RelationInstance]:
-        limit = self.cfg.experiment.get("evaluation", {}).get("max_instances_per_relation", "all")
-        if str(limit).lower() == "all" or limit is None:
-            return instances
-        return sample_instances_per_relation(
+    def _sample_evaluation(self, instances: list[RelationInstance]) -> list[RelationInstance]:
+        evaluation = self.cfg.experiment.get("evaluation", {})
+        depthrank_cfg = evaluation.get("depthrank", {})
+        heads = depthrank_cfg.get("heads_per_relation", None)
+        max_tails = depthrank_cfg.get("max_reference_tails", None)
+        seed = depthrank_cfg.get("seed", self.cfg.experiment.seed)
+        few_shot_size = self._few_shot_size()
+        if heads is not None and int(heads) == few_shot_size:
+            LOGGER.warning(
+                "DepthRank heads_per_relation (%s) equals few-shot size (%s); "
+                "few-shot n is independent from evaluation size.",
+                heads,
+                few_shot_size,
+            )
+        if "depthrank" not in evaluation:
+            limit = evaluation.get("max_instances_per_relation", "all")
+            if str(limit).lower() != "all" and limit is not None:
+                return sample_instances_per_relation(
+                    instances,
+                    instances_per_relation=int(limit),
+                    strategy="deterministic",
+                    seed=int(self.cfg.experiment.seed),
+                )
+        sampled = sample_heads_per_relation(
             instances,
-            instances_per_relation=int(limit),
-            strategy="deterministic",
-            seed=int(self.cfg.experiment.seed),
+            heads_per_relation=None if heads is None else int(heads),
+            max_reference_tails=None if max_tails is None else int(max_tails),
+            strategy=str(depthrank_cfg.get("strategy", "deterministic")),
+            seed=None if seed is None else int(seed),
         )
+        counts = pd.DataFrame([asdict(i) for i in sampled]) if sampled else pd.DataFrame()
+        if not counts.empty:
+            for relation, group in counts.groupby("relation"):
+                LOGGER.info(
+                    "Evaluating %s heads and %s reference tails for relation %s",
+                    group["head"].nunique(),
+                    len(group),
+                    relation,
+                )
+        return sampled
 
     def _create_model_bundle(self):
         model_cfg = self.cfg.experiment.model
@@ -236,10 +281,12 @@ class ExperimentRunner:
         return builders
 
     def _demonstrations(self) -> list[RelationInstance]:
-        demo_cfg = self.cfg.experiment.prompting.get("demonstrations", {})
+        demo_cfg = self.cfg.experiment.get(
+            "few_shot", self.cfg.experiment.prompting.get("demonstrations", {})
+        )
         if not demo_cfg.get("enabled", False):
             return []
-        n = int(demo_cfg.get("num_examples", self.cfg.experiment.prompting.get("n_shot", 0)))
+        n = self._few_shot_size()
         if n < 1:
             return []
         instances = self._filter_relations(
@@ -259,6 +306,12 @@ class ExperimentRunner:
             strategy=str(demo_cfg.get("strategy", "deterministic")),
             seed=int(demo_cfg.get("seed", self.cfg.experiment.seed)),
         )[:n]
+
+    def _few_shot_size(self) -> int:
+        few_shot = self.cfg.experiment.get("few_shot", {})
+        if few_shot:
+            return int(few_shot.get("n_samples", 0))
+        return int(self.cfg.experiment.prompting.get("n_shot", 0))
 
     def _compute_depthrank(
         self, instances: list[RelationInstance], calculator: Any
@@ -353,13 +406,24 @@ class ExperimentRunner:
         rows: list[dict[str, Any]] = []
         for relation, values in sorted(by_relation.items()):
             sample_size = min(len(values["prompting"]), len(values["masked_prompting"]))
-            rows.append(
-                asdict(
-                    calc.compute(
-                        relation, values["prompting"], values["masked_prompting"], sample_size
-                    )
+            result = asdict(
+                calc.compute(
+                    relation, values["prompting"], values["masked_prompting"], sample_size
                 )
             )
+            relation_rows = [row for row in depthrank if str(row["relation"]) == relation]
+            heads = {str(row["head"]) for row in relation_rows}
+            result.update(
+                {
+                    "evaluation_size": sample_size,
+                    "few_shot_size": self._few_shot_size(),
+                    "number_of_heads": len(heads),
+                    "number_of_reference_tails": sample_size,
+                    "model": str(self.cfg.experiment.model.name),
+                    "seed": int(self.cfg.experiment.seed),
+                }
+            )
+            rows.append(result)
         return rows
 
     def _compute_statistics(self, mi_scores: list[dict[str, Any]], start: float) -> dict[str, Any]:
@@ -388,12 +452,14 @@ class ExperimentRunner:
     def _write_summary_tables(self, mi_df: pd.DataFrame, output_dir: Path) -> None:
         """Write sample-size summary tables for every single run."""
         summary = (
-            mi_df.groupby("sample_size", as_index=False)["maskability_index"]
+            mi_df.groupby("evaluation_size", as_index=False)["maskability_index"]
             .agg(mean_MI="mean", std_MI=lambda s: float(s.std(ddof=0)))
         )
         rows = []
-        for sample_size in summary["sample_size"].tolist():
-            values = mi_df.loc[mi_df["sample_size"] == sample_size, "maskability_index"].tolist()
+        for sample_size in summary["evaluation_size"].tolist():
+            values = mi_df.loc[
+                mi_df["evaluation_size"] == sample_size, "maskability_index"
+            ].tolist()
             ci = bootstrap_ci(
                 values,
                 seed=int(self.cfg.experiment.seed),
@@ -401,12 +467,12 @@ class ExperimentRunner:
             )
             rows.append(
                 {
-                    "sample_size": sample_size,
+                    "evaluation_size": sample_size,
                     "bootstrap_CI_lower": ci["lower"],
                     "bootstrap_CI_upper": ci["upper"],
                 }
             )
-        summary = summary.merge(pd.DataFrame(rows), on="sample_size")
+        summary = summary.merge(pd.DataFrame(rows), on="evaluation_size")
         summary.to_csv(output_dir / "sample_size_summary.csv", index=False)
         (output_dir / "latex" / "sample_size_summary.tex").write_text(
             summary.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
@@ -433,8 +499,7 @@ class ExperimentRunner:
 
     def _apply_sweep_value(self, cfg: DictConfig, dimension: str, value: Any) -> None:
         if dimension == "instances_per_relation":
-            cfg.experiment.dataset.sampling.instances_per_relation = int(value)
-            cfg.experiment.evaluation.max_instances_per_relation = "all"
+            cfg.experiment.evaluation.depthrank.heads_per_relation = int(value)
         elif dimension == "threshold":
             cfg.experiment.analysis.threshold = float(value)
         elif dimension == "model":
