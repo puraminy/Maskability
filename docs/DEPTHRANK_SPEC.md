@@ -96,7 +96,7 @@ Code mapping:
 
 ## Relation-level mean DepthRank
 
-The manuscript states that for relation \(r\) and few-shot sample size \(n\), mean DepthRank is computed across an \(n\)-sample under each template family:
+The manuscript states that for relation \(r\) and few-shot few-shot size \(n\) and held-out evaluation size, mean DepthRank is computed across an \(n\)-sample under each template family:
 
 \[
 DR_{\mathrm{Prompting}}(r,n), \qquad DR_{\mathrm{MaskedPrompting}}(r,n).
@@ -104,8 +104,8 @@ DR_{\mathrm{Prompting}}(r,n), \qquad DR_{\mathrm{MaskedPrompting}}(r,n).
 
 Variables and symbols:
 
-- \(DR_{\mathrm{Prompting}}(r,n)\): mean DepthRank for relation \(r\), sample size \(n\), using prefix-style prompting.
-- \(DR_{\mathrm{MaskedPrompting}}(r,n)\): mean DepthRank for relation \(r\), sample size \(n\), using masked-style prompting.
+- \(DR_{\mathrm{Prompting}}(r,n)\): mean DepthRank for relation \(r\), few-shot size \(n\) and held-out evaluation size, using prefix-style prompting.
+- \(DR_{\mathrm{MaskedPrompting}}(r,n)\): mean DepthRank for relation \(r\), few-shot size \(n\) and held-out evaluation size, using masked-style prompting.
 - \(r\): relation.
 - \(n\): chosen few-shot sample size or evaluation sample count for the relation/template setting.
 

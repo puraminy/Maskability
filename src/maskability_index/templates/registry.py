@@ -56,6 +56,7 @@ CANONICAL_ATOMIC_PHRASES: dict[str, str] = {
     "UsedFor": "is used for",
     "CapableOf": "is capable of",
     "HasProperty": "has the property of",
+    "FilledBy": "is filled by",
     "isFilledBy": "is filled by",
     "xAttr": "is seen as",
     "xIntent": "because they intended",

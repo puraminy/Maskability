@@ -56,3 +56,16 @@ The supported layout is the ATOMIC2020 v4 CSV release with split files named `v4
 ## HuggingFace backend
 
 HuggingFace support is intentionally separate. The CSV backend is the default and never downloads data. A future or explicit experiment can request `backend="hf"`, but normal production runs should use the local CSV files in `data/atomic/`.
+
+## few-shot n != DepthRank evaluation size
+
+Do not use the number of few-shot examples as the number of DepthRank evaluation
+items. Few-shot sampling configures demonstrations/adaptation examples through
+`few_shot.n_samples` and its own seed. Held-out DepthRank sampling configures
+`evaluation.depthrank.heads_per_relation`, `evaluation.depthrank.max_reference_tails`,
+and its own seed.
+
+Relation selection is explicit: `relations.mode: selected` requires the named
+relations, while `relations.mode: all` is reserved for extension experiments over
+every loaded relation. Missing selected relations are reported rather than silently
+inferred from the dataset.

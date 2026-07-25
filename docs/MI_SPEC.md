@@ -25,7 +25,7 @@ Code mapping:
 
 ## DepthRank quantities consumed by MI
 
-For relation \(r\) and sample size \(n\), DepthRank is computed under two template families:
+For relation \(r\) and few-shot size \(n\) and held-out evaluation size, DepthRank is computed under two template families:
 
 \[
 DR_{\mathrm{Prompting}}(r,n), \qquad DR_{\mathrm{MaskedPrompting}}(r,n).
@@ -36,7 +36,7 @@ Variables:
 - \(DR_{\mathrm{Prompting}}(r,n)\): arithmetic mean DepthRank across the \(n\)-sample for relation \(r\) using unmasked prefix templates.
 - \(DR_{\mathrm{MaskedPrompting}}(r,n)\): arithmetic mean DepthRank across the \(n\)-sample for relation \(r\) using masked templates.
 - \(r\): relation.
-- \(n\): selected few-shot/evaluation sample size.
+- \(n\): selected few-shot condition and held-out DepthRank evaluation size.
 
 Template-family definitions:
 
@@ -60,7 +60,7 @@ The manuscript defines MI as the relative DepthRank improvement of masked prompt
 
 Variables:
 
-- \(\mathrm{MI}(r,n)\): Maskability Index for relation \(r\) at sample size \(n\).
+- \(\mathrm{MI}(r,n)\): Maskability Index for relation \(r\) at few-shot size \(n\) and held-out evaluation size.
 - \(DR_{\mathrm{Prompting}}(r,n)\): prefix-prompting mean DepthRank.
 - \(DR_{\mathrm{MaskedPrompting}}(r,n)\): masked-prompting mean DepthRank.
 
@@ -111,7 +111,7 @@ Procedure:
 Outputs:
 
 - relation
-- sample size \(n\)
+- few-shot size \(n\) and held-out evaluation size
 - \(DR_{\mathrm{Prompting}}(r,n)\)
 - \(DR_{\mathrm{MaskedPrompting}}(r,n)\)
 - \(\mathrm{MI}(r,n)\)

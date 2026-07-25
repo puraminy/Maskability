@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class DatasetSamplingConfig:
-    """Relation-balanced evaluation sampling configuration."""
+    """Legacy raw-instance sampling configuration; prefer few_shot/evaluation."""
 
     strategy: str = "deterministic"
     instances_per_relation: int | None = None
@@ -18,8 +18,18 @@ class DatasetSamplingConfig:
 class RelationsConfig:
     """Relation selection configuration."""
 
-    mode: str = "dataset"
+    mode: str = "selected"
     selected: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class DepthRankEvaluationConfig:
+    """Held-out DepthRank evaluation sampling configuration."""
+
+    heads_per_relation: int | None = 100
+    max_reference_tails: int | None = 3
+    strategy: str = "deterministic"
+    seed: int | None = None
 
 
 @dataclass(frozen=True)
@@ -27,6 +37,17 @@ class EvaluationConfig:
     """Independent evaluation-size configuration."""
 
     max_instances_per_relation: int | str = "all"
+    depthrank: DepthRankEvaluationConfig = field(default_factory=DepthRankEvaluationConfig)
+
+
+@dataclass(frozen=True)
+class FewShotConfig:
+    """Few-shot training/adaptation or demonstration configuration."""
+
+    enabled: bool = False
+    n_samples: int = 0
+    strategy: str = "deterministic"
+    seed: int | None = None
 
 
 @dataclass(frozen=True)
@@ -146,6 +167,7 @@ class ExperimentConfig:
     evaluation: EvaluationConfig
     model: ModelConfig
     prompting: PromptingConfig
+    few_shot: FewShotConfig
     sweep: SweepConfig
     analysis: AnalysisConfig
     tracking: TrackingConfig

@@ -8,6 +8,7 @@ from maskability_index.datasets.atomic import (
     RelationInstance,
     filter_instances_by_relations,
     load_atomic2020_instances,
+    sample_heads_per_relation,
     sample_instances_per_relation,
 )
 
@@ -80,7 +81,7 @@ def test_random_sample_instances_per_relation_is_seeded() -> None:
 
 
 def test_filter_instances_by_selected_relations() -> None:
-    """Relation filtering keeps explicit selected relations and supports dataset mode."""
+    """Relation filtering keeps explicit selected relations and supports all mode."""
     instances = [
         RelationInstance("h1", "xNeed", "t1", "validation", "1"),
         RelationInstance("h2", "AtLocation", "t2", "validation", "2"),
@@ -89,4 +90,22 @@ def test_filter_instances_by_selected_relations() -> None:
     assert filter_instances_by_relations(
         instances, mode="selected", selected=["AtLocation"]
     ) == [instances[1]]
-    assert filter_instances_by_relations(instances, mode="dataset") == instances
+    assert filter_instances_by_relations(instances, mode="all") == instances
+
+
+def test_sample_heads_per_relation_limits_heads_and_reference_tails() -> None:
+    """Head-level sampling caps heads first, then tails per selected head."""
+    instances = [
+        RelationInstance("h1", "r", "t1", "validation", "1"),
+        RelationInstance("h1", "r", "t2", "validation", "2"),
+        RelationInstance("h1", "r", "t3", "validation", "3"),
+        RelationInstance("h2", "r", "t4", "validation", "4"),
+        RelationInstance("h3", "r", "t5", "validation", "5"),
+    ]
+
+    sampled = sample_heads_per_relation(
+        instances, heads_per_relation=2, max_reference_tails=2
+    )
+
+    assert [item.head for item in sampled] == ["h1", "h1", "h2"]
+    assert [item.tail for item in sampled] == ["t1", "t2", "t4"]

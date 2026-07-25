@@ -4,8 +4,17 @@ seed: 13
 output_dir: results/statistical_significance
 
 relations:
-  mode: dataset
-  selected: []
+  mode: selected
+  selected:
+    - AtLocation
+    - ObjectUse
+    - xAttr
+    - CapableOf
+    - HasProperty
+    - FilledBy
+    - xIntent
+    - xNeed
+    - xWant
 
 dataset:
   backend: auto
@@ -14,13 +23,19 @@ dataset:
   cache_dir: data/cache
   local_path: data/atomic
   split: validation
-  sampling:
-    strategy: deterministic
-    instances_per_relation: 5
-    seed: ${experiment.seed}
+
+few_shot:
+  enabled: true
+  n_samples: 5
+  strategy: deterministic
+  seed: ${experiment.seed}
 
 evaluation:
-  max_instances_per_relation: all
+  depthrank:
+    heads_per_relation: 100
+    max_reference_tails: 3
+    strategy: deterministic
+    seed: ${experiment.seed}
 
 model:
   name: google-t5/t5-small

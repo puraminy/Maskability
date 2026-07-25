@@ -113,6 +113,28 @@ sweep:
   dimensions: [instances_per_relation, threshold, model, prompt_variant, demonstrations]
 ```
 
-Relation selection is applied after loading and before sampling. `dataset` and `all` evaluate every relation present in the loaded split, while `selected` evaluates only the explicitly listed relation names. Dataset sampling creates a reproducible relation-balanced evaluation pool; `evaluation.max_instances_per_relation` then caps how many loaded examples are evaluated for each relation without changing few-shot demonstrations. `sample_size` in `mi_scores.csv` is computed from the actual number of prefix/masked DepthRank rows that contributed to each relation-level MI value.
+Relation selection is applied after loading and before sampling. `all` evaluates every relation present in the loaded split, while `selected` evaluates only the explicitly listed relation names. Few-shot sampling and held-out DepthRank evaluation sampling have independent seeds. `evaluation_size` in `mi_scores.csv` is computed from the actual number of prefix/masked DepthRank rows that contributed to each relation-level MI value; `few_shot_size` reports the independent few-shot condition.
 
 When `sweep.enabled` is true, the runner executes one complete child experiment per selected sweep value and writes aggregate summaries such as `sample_size_summary.csv`, `threshold_summary.csv`, `model_summary.csv`, and matching LaTeX tables at the sweep root. Each child run still contains the full standard output set: config, metrics, predictions, DepthRank rows, MI scores, plots, and LaTeX tables.
+
+## Few-shot size is not the DepthRank evaluation size
+
+The experiment configuration intentionally separates the paper's two uses of sample
+count. `few_shot.n_samples` configures the few-shot training/adaptation or prompt
+demonstration condition (MI is reported at `n=5` in the paper). It does **not**
+control the held-out examples used to compute DepthRank. DepthRank evaluation is
+configured under `evaluation.depthrank`, where `heads_per_relation` selects held-out
+heads per relation and `max_reference_tails` limits the number of gold tails retained
+for each selected head.
+
+The reproduction setup uses T5-base, the selected nine ATOMIC2020 relations,
+`few_shot.n_samples: 5`, `evaluation.depthrank.heads_per_relation: 100`, and
+`evaluation.depthrank.max_reference_tails: 3`. Relation selection must be explicit:
+use `relations.mode: selected` with a `selected` list, or `relations.mode: all` for
+extension experiments.
+
+`mi_scores.csv` records both sides of this split: `evaluation_size`,
+`few_shot_size`, `number_of_heads`, `number_of_reference_tails`, `model`, and
+`seed`, in addition to relation-level DepthRank and MI fields. The runner logs a
+warning if the configured evaluation head count equals the few-shot size and reports
+missing selected relations plus actual evaluated head/tail counts per relation.
