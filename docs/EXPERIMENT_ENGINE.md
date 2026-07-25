@@ -82,3 +82,37 @@ results/<experiment_name>/
 ```
 
 `metrics.json` includes reproducibility metadata (seed, Git hash, Python/platform/Torch details), correlation statistics, bootstrap confidence intervals, permutation tests, relation counts, and runtime.
+
+## Configurable research framework extensions
+
+Current experiments can make the paper reproduction one configuration among many by using explicit Hydra sections:
+
+```yaml
+relations:
+  mode: dataset      # dataset | all | selected
+  selected: []
+
+dataset:
+  sampling:
+    strategy: deterministic  # deterministic | random
+    instances_per_relation: 5
+    seed: ${experiment.seed}
+
+evaluation:
+  max_instances_per_relation: all  # integer or all
+
+prompting:
+  demonstrations:
+    enabled: false
+    num_examples: 0
+    strategy: deterministic
+    seed: ${experiment.seed}
+
+sweep:
+  enabled: true
+  dimensions: [instances_per_relation, threshold, model, prompt_variant, demonstrations]
+```
+
+Relation selection is applied after loading and before sampling. `dataset` and `all` evaluate every relation present in the loaded split, while `selected` evaluates only the explicitly listed relation names. Dataset sampling creates a reproducible relation-balanced evaluation pool; `evaluation.max_instances_per_relation` then caps how many loaded examples are evaluated for each relation without changing few-shot demonstrations. `sample_size` in `mi_scores.csv` is computed from the actual number of prefix/masked DepthRank rows that contributed to each relation-level MI value.
+
+When `sweep.enabled` is true, the runner executes one complete child experiment per selected sweep value and writes aggregate summaries such as `sample_size_summary.csv`, `threshold_summary.csv`, `model_summary.csv`, and matching LaTeX tables at the sweep root. Each child run still contains the full standard output set: config, metrics, predictions, DepthRank rows, MI scores, plots, and LaTeX tables.

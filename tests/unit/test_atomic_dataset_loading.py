@@ -6,6 +6,7 @@ import pytest
 
 from maskability_index.datasets.atomic import (
     RelationInstance,
+    filter_instances_by_relations,
     load_atomic2020_instances,
     sample_instances_per_relation,
 )
@@ -76,3 +77,16 @@ def test_random_sample_instances_per_relation_is_seeded() -> None:
     assert first != different
     assert {instance.relation for instance in first} == {"xNeed", "xAttr"}
     assert len(first) == 4
+
+
+def test_filter_instances_by_selected_relations() -> None:
+    """Relation filtering keeps explicit selected relations and supports dataset mode."""
+    instances = [
+        RelationInstance("h1", "xNeed", "t1", "validation", "1"),
+        RelationInstance("h2", "AtLocation", "t2", "validation", "2"),
+    ]
+
+    assert filter_instances_by_relations(
+        instances, mode="selected", selected=["AtLocation"]
+    ) == [instances[1]]
+    assert filter_instances_by_relations(instances, mode="dataset") == instances

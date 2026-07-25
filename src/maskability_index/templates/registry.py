@@ -17,17 +17,14 @@ class RelationTemplate:
 
     def prefix(self, instance: RelationInstance) -> str:
         """Render a prefix-style prompt that leaves the tail to be generated."""
-
         return f"{instance.head} {self.phrase}".strip()
 
     def masked(self, instance: RelationInstance, mask_token: str = "<extra_id_0>") -> str:
         """Render a masked prompt with a single explicit span to recover."""
-
         return f"{instance.head} {self.phrase} {mask_token}".strip()
 
     def full_text(self, instance: RelationInstance) -> str:
         """Render the complete verbalized triple including the gold tail."""
-
         return f"{self.prefix(instance)} {instance.tail}".strip()
 
 
@@ -35,16 +32,15 @@ class TemplateRegistry:
     """Registry of relation names to reusable prompt templates."""
 
     def __init__(self, templates: Mapping[str, RelationTemplate] | None = None) -> None:
+        """Create a registry from optional initial templates."""
         self._templates: dict[str, RelationTemplate] = dict(templates or {})
 
     def register(self, template: RelationTemplate) -> None:
         """Register a template, replacing any previous template for that relation."""
-
         self._templates[template.relation] = template
 
     def get(self, relation: str) -> RelationTemplate:
         """Return the template for a relation, preserving exact relation keys."""
-
         try:
             return self._templates[relation]
         except KeyError as exc:
@@ -52,12 +48,12 @@ class TemplateRegistry:
 
     def list_relations(self) -> list[str]:
         """List relations with registered templates in deterministic order."""
-
         return sorted(self._templates)
 
 CANONICAL_ATOMIC_PHRASES: dict[str, str] = {
     "AtLocation": "located at",
     "ObjectUse": "is used for",
+    "UsedFor": "is used for",
     "CapableOf": "is capable of",
     "HasProperty": "has the property of",
     "isFilledBy": "is filled by",
@@ -100,7 +96,6 @@ CANONICAL_ATOMIC_PHRASES: dict[str, str] = {
 
 def atomic2020_registry() -> TemplateRegistry:
     """Build the canonical ATOMIC2020 template registry."""
-
     registry = TemplateRegistry()
     for relation, phrase in CANONICAL_ATOMIC_PHRASES.items():
         registry.register(RelationTemplate(relation=relation, phrase=phrase))

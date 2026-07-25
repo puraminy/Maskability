@@ -45,6 +45,10 @@ dataset:
 
 Sampling is applied independently within each relation, so a global truncation cannot drop later relation columns such as `xAttr`. `deterministic` preserves the official CSV order and takes the first configured examples per relation. `random` uses the configured seed through a local RNG, which supports reproducible reviewer robustness, sample-size sensitivity, and multi-seed runs. Relations with fewer available examples keep all available examples rather than being discarded.
 
+## Relation selection and evaluation limits
+
+Hydra `relations` config controls which loaded relations are evaluated. `mode: dataset` and `mode: all` keep every relation present in the split, while `mode: selected` keeps only exact names from `selected`. The separate `evaluation.max_instances_per_relation` cap controls the number of evaluated examples per relation after relation filtering and dataset sampling. This is intentionally separate from few-shot prompting demonstrations.
+
 ## Supported dataset version
 
 The supported layout is the ATOMIC2020 v4 CSV release with split files named `v4_atomic_trn.csv`, `v4_atomic_dev.csv`, and `v4_atomic_tst.csv`.

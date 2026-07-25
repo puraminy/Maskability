@@ -15,6 +15,31 @@ class DatasetSamplingConfig:
 
 
 @dataclass(frozen=True)
+class RelationsConfig:
+    """Relation selection configuration."""
+
+    mode: str = "dataset"
+    selected: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class EvaluationConfig:
+    """Independent evaluation-size configuration."""
+
+    max_instances_per_relation: int | str = "all"
+
+
+@dataclass(frozen=True)
+class DemonstrationsConfig:
+    """Few-shot demonstration configuration independent of evaluation size."""
+
+    enabled: bool = False
+    num_examples: int = 0
+    strategy: str = "deterministic"
+    seed: int | None = None
+
+
+@dataclass(frozen=True)
 class DatasetConfig:
     """Dataset acquisition, split, and sampling configuration."""
 
@@ -44,6 +69,30 @@ class PromptingConfig:
     style: str
     n_shot: int
     template_set: str
+    demonstrations: DemonstrationsConfig = field(default_factory=DemonstrationsConfig)
+
+
+@dataclass(frozen=True)
+class SweepConfig:
+    """Generic experiment sweep configuration."""
+
+    enabled: bool = False
+    dimensions: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class AnalysisConfig:
+    """Statistical analysis and sweep values."""
+
+    threshold: float = 0.30
+    bootstrap_iterations: int = 1000
+    permutation_iterations: int = 1000
+    thresholds: list[float] = field(default_factory=list)
+    instances_per_relation: list[int] = field(default_factory=list)
+    n_shots: list[int] = field(default_factory=list)
+    models: list[str] = field(default_factory=list)
+    baselines: list[str] = field(default_factory=list)
+    prompt_variants: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -93,8 +142,12 @@ class ExperimentConfig:
     name: str
     seed: int
     dataset: DatasetConfig
+    relations: RelationsConfig
+    evaluation: EvaluationConfig
     model: ModelConfig
     prompting: PromptingConfig
+    sweep: SweepConfig
+    analysis: AnalysisConfig
     tracking: TrackingConfig
     outputs: OutputConfig
     training: TrainingConfig | None = None
