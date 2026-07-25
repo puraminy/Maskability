@@ -54,7 +54,7 @@ The reproduction script is a thin wrapper around the same runner:
 python experiments/reproduce_paper.py
 ```
 
-By default the supplied configurations use a deterministic fixture backend so integration tests and dry runs do not download models or datasets. Set `experiment.dataset.backend=atomic2020` and enable the training/depthrank model stages when running full manuscript-scale experiments in a provisioned environment.
+By default the supplied configurations route DepthRank through the teacher-forced seq2seq model implementation used by `experiments/run_maskability.py`. Integration tests patch the model factory with a local test double, but production experiments must load a configured model through `create_seq2seq_model()`; no deterministic fixture or synthetic DepthRank backend is used by the runner.
 
 ## Outputs
 

@@ -13,8 +13,10 @@ import pandas as pd
 from omegaconf import DictConfig
 
 from maskability_index.datasets.atomic import RelationInstance, load_atomic2020_instances
+from maskability_index.depthrank import DepthRankResult
 from maskability_index.evaluation import update_results_index
 from maskability_index.maskability import MaskabilityCalculator
+from maskability_index.models.factory import create_seq2seq_model
 from maskability_index.plotting import generate_plots
 from maskability_index.prompting import MaskedPromptBuilder, PrefixPromptBuilder
 from maskability_index.statistics import bootstrap_ci, correlations, permutation_test
@@ -32,6 +34,8 @@ PLOT_NAMES = [
     "model_comparison",
     "baseline_comparison",
 ]
+TEMPLATE_FAMILIES = {"prompting": PrefixPromptBuilder, "masked_prompting": MaskedPromptBuilder}
+STYLE_ALIASES = {"prefix": "prompting", "masked": "masked_prompting"}
 
 
 class ExperimentRunner:
@@ -45,15 +49,20 @@ class ExperimentRunner:
         self.output_dir = root
 
     def run(self) -> Path:
-        """Execute dataset, prompting, training hook, DepthRank, MI, stats, plots, and tables."""
+        """Execute dataset, prompting, inference, DepthRank, MI, stats, plots, and tables."""
         start = time.time()
         ensure_output_tree(self.output_dir, OUTPUT_SUBDIRS)
         configure_logging(self.output_dir / "logs" / "log.txt")
         set_seed(int(self.cfg.experiment.seed))
         write_config(self.output_dir / "config.yaml", self.cfg)
         instances = self._load_dataset()
-        predictions = self._build_predictions(instances)
-        depthrank = self._compute_depthrank(predictions)
+        bundle = self._create_model_bundle()
+        device = self._device()
+        depthrank_calculator = self._create_depthrank_calculator(
+            bundle.model, bundle.tokenizer, device
+        )
+        depthrank = self._compute_depthrank(instances, depthrank_calculator)
+        predictions = self._build_predictions(depthrank, bundle.model, bundle.tokenizer, device)
         mi_scores = self._compute_mi(depthrank)
         metrics = self._compute_statistics(mi_scores, start)
         self._write_csv(self.output_dir / "predictions.csv", predictions)
@@ -73,7 +82,7 @@ class ExperimentRunner:
 
     def _load_dataset(self) -> list[RelationInstance]:
         dataset_cfg = self.cfg.experiment.dataset
-        if dataset_cfg.get("backend", "auto") in {"atomic2020", "auto", "local", "hf"}:
+        if dataset_cfg.get("backend", "auto") in {"atomic2020", "auto", "local", "hf", "csv"}:
             configured_backend = dataset_cfg.get("backend", "auto")
             backend = "auto" if configured_backend == "atomic2020" else configured_backend
             instances = load_atomic2020_instances(
@@ -86,48 +95,136 @@ class ExperimentRunner:
             return instances[: int(dataset_cfg.get("limit", 20))]
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
 
-    def _build_predictions(self, instances: list[RelationInstance]) -> list[dict[str, Any]]:
-        prefix, masked = PrefixPromptBuilder(), MaskedPromptBuilder()
-        rows = []
-        for item in instances:
-            for style, builder in [("prefix", prefix), ("masked", masked)]:
-                rows.append(
-                    {
-                        "id": item.id,
-                        "relation": item.relation,
-                        "style": style,
-                        "prompt": builder.build(item),
-                        "target": item.tail,
-                        "prediction": item.tail,
-                        "score": 1.0,
-                        "probability": 1.0,
-                    }
-                )
+    def _create_model_bundle(self):
+        model_cfg = self.cfg.experiment.model
+        return create_seq2seq_model(
+            str(model_cfg.name),
+            revision=str(model_cfg.get("revision", "main")),
+            tokenizer_name=model_cfg.get("tokenizer_name", None),
+        )
+
+    def _create_depthrank_calculator(self, model: Any, tokenizer: Any, device: str):
+        from maskability_index.depthrank import DepthRankCalculator
+
+        return DepthRankCalculator(model, tokenizer, device=device)
+
+    def _device(self) -> str:
+        configured = self.cfg.experiment.model.get("device", None)
+        if configured:
+            return str(configured)
+        try:
+            import torch
+        except ImportError:
+            return "cpu"
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _template_builders(self) -> dict[str, Any]:
+        style = str(self.cfg.experiment.prompting.get("style", "both"))
+        if style == "both":
+            families = ("prompting", "masked_prompting")
+        else:
+            families = (STYLE_ALIASES.get(style, style),)
+        return {family: TEMPLATE_FAMILIES[family]() for family in families}
+
+    def _compute_depthrank(
+        self, instances: list[RelationInstance], calculator: Any
+    ) -> list[dict[str, Any]]:
+        """Compute DepthRank with the canonical teacher-forced calculator only."""
+        rows: list[dict[str, Any]] = []
+        for template_family, builder in self._template_builders().items():
+            for instance in instances:
+                prompt = builder.build(instance)
+                result = calculator.compute(prompt, instance.tail)
+                rows.append(self._depthrank_row(instance, template_family, result))
         return rows
 
-    def _compute_depthrank(self, predictions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        rows = []
-        for row in predictions:
-            base = max(1, len(str(row["target"]).split()))
-            relation_offset = (sum(ord(c) for c in str(row["relation"])) % 7) + 1
-            style_factor = 0.72 if row["style"] == "masked" else 1.0
-            depthrank = float((base + relation_offset) * style_factor)
-            rows.append({**row, "token_ranks": str([round(depthrank, 3)]), "depthrank": depthrank})
+    def _build_predictions(
+        self, depthrank_rows: list[dict[str, Any]], model: Any, tokenizer: Any, device: str
+    ) -> list[dict[str, Any]]:
+        """Generate model predictions; never substitute the gold target as a prediction."""
+        generation_length = int(self.cfg.experiment.training.get("generation_length", 32))
+        beam_size = int(self.cfg.experiment.training.get("beam_size", 1))
+        rows: list[dict[str, Any]] = []
+        model.eval()
+        for row in depthrank_rows:
+            encoded = tokenizer(str(row["prompt"]), return_tensors="pt")
+            encoded = {key: value.to(device) for key, value in encoded.items()}
+            try:
+                import torch
+            except ImportError:
+                output_ids = model.generate(
+                    **encoded,
+                    max_length=generation_length,
+                    num_beams=beam_size,
+                )
+            else:
+                with torch.no_grad():
+                    output_ids = model.generate(
+                        **encoded,
+                        max_length=generation_length,
+                        num_beams=beam_size,
+                    )
+            prediction = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+            rows.append(
+                {
+                    "id": row["id"],
+                    "split": row["split"],
+                    "relation": row["relation"],
+                    "template_family": row["template_family"],
+                    "style": row["style"],
+                    "head": row["head"],
+                    "tail": row["tail"],
+                    "prompt": row["prompt"],
+                    "target": row["target"],
+                    "prediction": prediction,
+                    "score": "",
+                    "probability": "",
+                }
+            )
         return rows
+
+    @staticmethod
+    def _depthrank_row(
+        instance: RelationInstance, template_family: str, result: DepthRankResult
+    ) -> dict[str, Any]:
+        style = "prefix" if template_family == "prompting" else "masked"
+        return {
+            "id": instance.id,
+            "split": instance.split,
+            "relation": instance.relation,
+            "template_family": template_family,
+            "style": style,
+            "head": instance.head,
+            "tail": instance.tail,
+            "prompt": result.prompt,
+            "target": result.target,
+            "depthrank": result.depthrank,
+            "target_tokens": list(result.tokens),
+            "target_token_ids": list(result.token_ids),
+            "token_ranks": list(result.token_ranks),
+        }
 
     def _compute_mi(self, depthrank: list[dict[str, Any]]) -> list[dict[str, Any]]:
         calc = MaskabilityCalculator(threshold=float(self.cfg.experiment.analysis.threshold))
         by_relation: dict[str, dict[str, list[float]]] = {}
         for row in depthrank:
             relation_scores = by_relation.setdefault(
-                str(row["relation"]), {"prefix": [], "masked": []}
+                str(row["relation"]), {"prompting": [], "masked_prompting": []}
             )
-            relation_scores[str(row["style"])].append(float(row["depthrank"]))
+            family = str(
+                row.get("template_family")
+                or STYLE_ALIASES.get(str(row["style"]), str(row["style"]))
+            )
+            relation_scores[family].append(float(row["depthrank"]))
         sample_size = int(self.cfg.experiment.prompting.get("n_shot", 0)) or min(
-            len(value["prefix"]) for value in by_relation.values()
+            len(value["prompting"]) for value in by_relation.values()
         )
         return [
-            asdict(calc.compute(relation, values["prefix"], values["masked"], sample_size))
+            asdict(
+                calc.compute(
+                    relation, values["prompting"], values["masked_prompting"], sample_size
+                )
+            )
             for relation, values in sorted(by_relation.items())
         ]
 

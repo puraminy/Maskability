@@ -32,7 +32,7 @@ training:
 
 depthrank:
   enabled: true
-  backend: deterministic_fixture
+  backend: teacher_forced_model
 
 analysis:
   threshold: 0.30
