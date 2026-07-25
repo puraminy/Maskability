@@ -13,7 +13,7 @@ dataset:
   limit: 20
 
 model:
-  name: google/t5-small
+  name: google-t5/t5-small
   tokenizer_name: ${experiment.model.name}
   revision: main
 
@@ -40,7 +40,7 @@ analysis:
   permutation_iterations: 100
   thresholds: [0.20, 0.30, 0.40, 0.50]
   n_shots: [1, 3, 5, 10, 20]
-  models: [google/t5-small, google/t5-base, google/t5-large]
+  models: [google-t5/t5-small, google-t5/t5-base, google-t5/t5-large]
   baselines: [random, frequency, entropy, confidence]
   prompt_variants: [canonical, alternative]
 

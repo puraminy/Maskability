@@ -9,7 +9,7 @@ dataset:
   splits: [train, validation, test]
 
 model:
-  name: google/t5-small
+  name: google-t5/t5-small
   tokenizer_name: ${experiment.model.name}
   revision: main
 
