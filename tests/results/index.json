@@ -1,0 +1,712 @@
+{
+  "experiments": [
+    {
+      "configuration_hash": "b707dc56c0ffc6f193c1d3104f689a6ae447442fe349cdae96ca22c6c27d5b15",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.021135330200195312,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E01"
+      },
+      "timestamp": "2026-07-25T08:05:34.532516+00:00"
+    },
+    {
+      "configuration_hash": "88fb1a66b2b11e3e25c04bc4e6e5e22efdaaa8df2c69c5c4be2db87f0fef759e",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008530616760253906,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_comparison_exports_csv_la0/E02"
+      },
+      "timestamp": "2026-07-25T08:05:36.375500+00:00"
+    },
+    {
+      "configuration_hash": "a31f24dd25af07556641fba606a31115dba4355a30b150d63f2ec93aa6a1a209",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008630514144897461,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_report_generation_writes_0/E01"
+      },
+      "timestamp": "2026-07-25T08:05:38.035084+00:00"
+    },
+    {
+      "configuration_hash": "b835741f8f3640d27d65b47da10320d9735c1aae31ad28cc3c94c177fd2051ef",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.009224891662597656,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_reproduction_pipeline_cre0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:05:41.313398+00:00"
+    },
+    {
+      "configuration_hash": "dd940fc2cfd6733cbd0d2ae60a8c7d8300dfd05f480bad78262b81efedf2ee2b",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008450984954833984,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_configuration_overrides_w0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:05:42.953895+00:00"
+    },
+    {
+      "configuration_hash": "6de046c7d1ffb109fd0ee84731fca815c8971c98b877b0103011cd2ab9685ab3",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008859872817993164,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-1/test_registry_register_run_lis0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:05:44.604565+00:00"
+    },
+    {
+      "configuration_hash": "030894e6681c516cf16cbe93c5af22a431bc9b2916c76b43cc74fc82a92ae781",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.013632535934448242,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E01"
+      },
+      "timestamp": "2026-07-25T08:07:14.485843+00:00"
+    },
+    {
+      "configuration_hash": "e66da9b7d6dd2c7bd9e937781a3c28493c4aa58fc34d416eff658d3bc89e2c61",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008555412292480469,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_comparison_exports_csv_la0/E02"
+      },
+      "timestamp": "2026-07-25T08:07:16.375969+00:00"
+    },
+    {
+      "configuration_hash": "e45d878da76489f0d19792a16e519a164f0e828afe36fe1cda07ae9ecfc99b81",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.00861978530883789,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_report_generation_writes_0/E01"
+      },
+      "timestamp": "2026-07-25T08:07:18.046691+00:00"
+    },
+    {
+      "configuration_hash": "5c408b01c0f9cf2967fd87a7b8a749df46684a72c1d91c9f25db7aa962a0473c",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008521795272827148,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_reproduction_pipeline_cre0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:07:21.232613+00:00"
+    },
+    {
+      "configuration_hash": "dc9cc3b312853ec44caf4659b55b122d2322af29bc247ac606bc26f13e29854c",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008456707000732422,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_configuration_overrides_w0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:07:22.891849+00:00"
+    },
+    {
+      "configuration_hash": "67d15f7493898ded85a82fdcad27a0590b57beddbdff58bc7f043b0aa4a678c3",
+      "dataset": "atomic2020",
+      "experiment_id": "E01",
+      "git_commit": "565b266e6021d0bebfb7b07f8b422c022238536d",
+      "metrics": {
+        "best_mi": 0.28,
+        "best_n_shot": 5,
+        "best_relation": "xWant",
+        "best_threshold": null,
+        "bootstrap_ci": {
+          "confidence": 0.95,
+          "lower": 0.27999999999999997,
+          "mean": 0.28,
+          "upper": 0.28
+        },
+        "correlations": {
+          "kendall": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "pearson": {
+            "pvalue": 1.0,
+            "statistic": 1.0
+          },
+          "spearman": {
+            "pvalue": NaN,
+            "statistic": 0.9999999999999999
+          }
+        },
+        "environment": {
+          "cuda_available": false,
+          "cwd": "/home/ahmad/mask/tests",
+          "git_hash": "565b266e6021d0bebfb7b07f8b422c022238536d",
+          "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+          "python": "3.13.7 (main, Mar  3 2026, 12:19:54) [GCC 15.2.0]",
+          "torch": "2.13.0+cu130"
+        },
+        "mean_depthrank": 5.16,
+        "mean_mi": 0.27999999999999997,
+        "permutation_test": {
+          "pvalue": 0.6363636363636364,
+          "statistic": 1.6800000000000002
+        },
+        "relations": 2,
+        "runtime_seconds": 0.008938789367675781,
+        "seed": 13
+      },
+      "model": "google/t5-small",
+      "paths": {
+        "depthrank": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction/depthrank.csv",
+        "latex": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction/latex",
+        "metrics": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction/metrics.json",
+        "mi_scores": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction/mi_scores.csv",
+        "plots": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction/plots",
+        "root": "/tmp/pytest-of-ahmad/pytest-2/test_registry_register_run_lis0/reproduction"
+      },
+      "timestamp": "2026-07-25T08:07:24.535473+00:00"
+    }
+  ]
+}
