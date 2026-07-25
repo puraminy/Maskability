@@ -128,21 +128,30 @@ def iter_relation_instances(
                     )
             continue
 
-        for relation in VALID_RELATIONS:
-            if relation not in row:
+        #for relation in VALID_RELATIONS:
+        #    if relation not in row:
+        #        continue
+
+        #    value = row[relation]
+
+        #    for tail_index, candidate in enumerate(_tails(value)):
+        #        if candidate:
+        #            yield RelationInstance(
+        #                _clean(head),
+        #                relation,
+        #                candidate,
+        #                split,
+        #                f"{row_id}:{relation}:{tail_index}",
+        #            )
+        for key, value in row.items():
+            if key in {*_ID_COLUMNS, *_HEAD_COLUMNS, "split", "prefix"}:
                 continue
-
-            value = row[relation]
-
             for tail_index, candidate in enumerate(_tails(value)):
                 if candidate:
                     yield RelationInstance(
-                        _clean(head),
-                        relation,
-                        candidate,
-                        split,
-                        f"{row_id}:{relation}:{tail_index}",
+                        _clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}"
                     )
+
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():
