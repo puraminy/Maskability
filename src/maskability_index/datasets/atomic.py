@@ -22,7 +22,10 @@ VALID_RELATIONS = {
 }
 
 ATOMIC2020_HF_PATH = "allenai/atomic2020"
-DEFAULT_LOCAL_ATOMIC2020_PATH = "../data/atomic"
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic"
+
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
 _OFFICIAL_SPLIT_FILES = {
     "train": "v4_atomic_trn.csv",
