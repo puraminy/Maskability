@@ -16,7 +16,7 @@ from maskability_index.prompting import (
 
 def main() -> None:
     """Load 10 random ATOMIC samples, print prompts, and write a CSV artifact."""
-    rng = random.Random(13)
+    rng = random.Random(30)
     instances = _load_demo_instances()
     samples = rng.sample(instances, k=min(10, len(instances)))
 

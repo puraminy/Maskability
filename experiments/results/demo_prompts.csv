@@ -1,71 +1,71 @@
 relation,head,tail,prefix_prompt,masked_prompt,few_shot_prompt
-xEffect,PersonX finishes PersonX's report,mood lifts,"PersonX finishes PersonX's report as a result, PersonX","PersonX finishes PersonX's report as a result, PersonX <extra_id_0>","PersonX finishes PersonX's report as a result, PersonX mood lifts
+oWant,PersonX steals PersonY's lunch,to punch Person X in the face.,"PersonX steals PersonY's lunch as a result, others want","PersonX steals PersonY's lunch as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX finishes PersonX's report as a result, PersonX"
-xWant,PersonX makes one instead,to get something done quicker,PersonX makes one instead after that they want,PersonX makes one instead after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX steals PersonY's lunch as a result, others want"
+oWant,PersonX takes PersonY to the library,to get a toy at the store,"PersonX takes PersonY to the library as a result, others want","PersonX takes PersonY to the library as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX makes one instead after that they want"
-xWant,PersonX darkens a church door,to repent for their sins,PersonX darkens a church door after that they want,PersonX darkens a church door after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX takes PersonY to the library as a result, others want"
+xEffect,PersonX tests every ___,attention wanders,"PersonX tests every ___ as a result, PersonX","PersonX tests every ___ as a result, PersonX <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX darkens a church door after that they want"
-xAttr,PersonX asks PersonX's friends for advice,lost,PersonX asks PersonX's friends for advice is seen as,PersonX asks PersonX's friends for advice is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX tests every ___ as a result, PersonX"
+xWant,PersonX makes PersonY discovery,to understand the discovery,PersonX makes PersonY discovery after that they want,PersonX makes PersonY discovery after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX asks PersonX's friends for advice is seen as"
-xAttr,PersonX lets out a sigh of relief,tired,PersonX lets out a sigh of relief is seen as,PersonX lets out a sigh of relief is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX makes PersonY discovery after that they want"
+xWant,PersonX finishes PersonY's hike,take photos of their journey,PersonX finishes PersonY's hike after that they want,PersonX finishes PersonY's hike after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX lets out a sigh of relief is seen as"
-xNeed,PersonX takes PersonY to bed,to be home with Y,PersonX takes PersonY to bed before that they need,PersonX takes PersonY to bed before that they need <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX finishes PersonY's hike after that they want"
+xIntent,PersonX solves ___ by means,to get rid of issues,PersonX solves ___ by means because they intended,PersonX solves ___ by means because they intended <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX takes PersonY to bed before that they need"
-xNeed,PersonX smells of the lamp,to persist working,PersonX smells of the lamp before that they need,PersonX smells of the lamp before that they need <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX solves ___ by means because they intended"
+xWant,PersonX calls the authorities,to report a crime,PersonX calls the authorities after that they want,PersonX calls the authorities after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX smells of the lamp before that they need"
-xWant,PersonX feels pretty good,have a drink,PersonX feels pretty good after that they want,PersonX feels pretty good after that they want <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX calls the authorities after that they want"
+xIntent,PersonX plays violin,to practice for school,PersonX plays violin because they intended,PersonX plays violin because they intended <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX feels pretty good after that they want"
-xAttr,PersonX attains PersonX's end,determined,PersonX attains PersonX's end is seen as,PersonX attains PersonX's end is seen as <extra_id_0>,"PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX plays violin because they intended"
+oReact,PersonX strokes PersonY's hair,soothed,"PersonX strokes PersonY's hair as a result, others feel","PersonX strokes PersonY's hair as a result, others feel <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX attains PersonX's end is seen as"
-oWant,PersonX drops PersonY a line,to talk to them,"PersonX drops PersonY a line as a result, others want","PersonX drops PersonY a line as a result, others want <extra_id_0>","PersonX finishes PersonX's report as a result, PersonX mood lifts
+PersonX strokes PersonY's hair as a result, others feel"
+oWant,PersonX finds PersonY evidence,He denied it.,"PersonX finds PersonY evidence as a result, others want","PersonX finds PersonY evidence as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
 
-PersonX makes one instead after that they want to get something done quicker
+PersonX takes PersonY to the library as a result, others want to get a toy at the store
 
-PersonX darkens a church door after that they want to repent for their sins
+PersonX tests every ___ as a result, PersonX attention wanders
 
-PersonX drops PersonY a line as a result, others want"
+PersonX finds PersonY evidence as a result, others want"
