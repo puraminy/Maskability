@@ -1,71 +1,71 @@
 relation,head,tail,prefix_prompt,masked_prompt,few_shot_prompt
-oWant,PersonX steals PersonY's lunch,to punch Person X in the face.,"PersonX steals PersonY's lunch as a result, others want","PersonX steals PersonY's lunch as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+xNeed,PersonX wears ___ to the park,to go to the park,PersonX wears ___ to the park before that they need,PersonX wears ___ to the park before that they need <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX steals PersonY's lunch as a result, others want"
-oWant,PersonX takes PersonY to the library,to get a toy at the store,"PersonX takes PersonY to the library as a result, others want","PersonX takes PersonY to the library as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX wears ___ to the park before that they need"
+isFilledBy,PersonX borrows ___ from the library,books,PersonX borrows ___ from the library is filled by,PersonX borrows ___ from the library is filled by <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX takes PersonY to the library as a result, others want"
-xEffect,PersonX tests every ___,attention wanders,"PersonX tests every ___ as a result, PersonX","PersonX tests every ___ as a result, PersonX <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX borrows ___ from the library is filled by"
+xAttr,PersonX loses PersonX's husband,mournful,PersonX loses PersonX's husband is seen as,PersonX loses PersonX's husband is seen as <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX tests every ___ as a result, PersonX"
-xWant,PersonX makes PersonY discovery,to understand the discovery,PersonX makes PersonY discovery after that they want,PersonX makes PersonY discovery after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX loses PersonX's husband is seen as"
+HasSubEvent,relax,being comfortable,relax includes the event,relax includes the event <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX makes PersonY discovery after that they want"
-xWant,PersonX finishes PersonY's hike,take photos of their journey,PersonX finishes PersonY's hike after that they want,PersonX finishes PersonY's hike after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+relax includes the event"
+xEffect,PersonX blows this pop stand,takes a sigh of relief,"PersonX blows this pop stand as a result, PersonX","PersonX blows this pop stand as a result, PersonX <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX finishes PersonY's hike after that they want"
-xIntent,PersonX solves ___ by means,to get rid of issues,PersonX solves ___ by means because they intended,PersonX solves ___ by means because they intended <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX blows this pop stand as a result, PersonX"
+xNeed,water plant,put water on dirt,water plant before that they need,water plant before that they need <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX solves ___ by means because they intended"
-xWant,PersonX calls the authorities,to report a crime,PersonX calls the authorities after that they want,PersonX calls the authorities after that they want <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+water plant before that they need"
+xReact,PersonX tucks PersonX in,relaxed,"PersonX tucks PersonX in as a result, PersonX feels","PersonX tucks PersonX in as a result, PersonX feels <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX calls the authorities after that they want"
-xIntent,PersonX plays violin,to practice for school,PersonX plays violin because they intended,PersonX plays violin because they intended <extra_id_0>,"PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX tucks PersonX in as a result, PersonX feels"
+HinderedBy,PersonX is pretty damn good,PesonX's still likes to party with hookers.,PersonX is pretty damn good can be hindered by,PersonX is pretty damn good can be hindered by <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX plays violin because they intended"
-oReact,PersonX strokes PersonY's hair,soothed,"PersonX strokes PersonY's hair as a result, others feel","PersonX strokes PersonY's hair as a result, others feel <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX is pretty damn good can be hindered by"
+xEffect,PersonX has just moved to a new city,person  x has to unpack,"PersonX has just moved to a new city as a result, PersonX","PersonX has just moved to a new city as a result, PersonX <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX strokes PersonY's hair as a result, others feel"
-oWant,PersonX finds PersonY evidence,He denied it.,"PersonX finds PersonY evidence as a result, others want","PersonX finds PersonY evidence as a result, others want <extra_id_0>","PersonX steals PersonY's lunch as a result, others want to punch Person X in the face.
+PersonX has just moved to a new city as a result, PersonX"
+xAttr,PersonX keeps PersonY afloat,tolerant,PersonX keeps PersonY afloat is seen as,PersonX keeps PersonY afloat is seen as <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
 
-PersonX takes PersonY to the library as a result, others want to get a toy at the store
+PersonX borrows ___ from the library is filled by books
 
-PersonX tests every ___ as a result, PersonX attention wanders
+PersonX loses PersonX's husband is seen as mournful
 
-PersonX finds PersonY evidence as a result, others want"
+PersonX keeps PersonY afloat is seen as"

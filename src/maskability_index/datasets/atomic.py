@@ -19,17 +19,56 @@ from typing import Any, Literal, Optional, Mapping as TypingMapping
 from .manager import DatasetConfig, hf_download_and_cache
 
 VALID_RELATIONS = {
+    "AtLocation",
+    "ObjectUse",
+    "UsedFor",
+    "CapableOf",
+    "HasProperty",
+    "FilledBy",
+    "isFilledBy",
     "xAttr",
-    "xEffect",
     "xIntent",
     "xNeed",
-    "xReact",
     "xWant",
+    "xEffect",
+    "xReact",
     "oEffect",
     "oReact",
     "oWant",
-    # legacy relations still tolerated (paper uses a subset)
+    "Causes",
+    "CausesDesire",
+    "CreatedBy",
+    "DefinedAs",
+    "Desires",
+    "HasA",
+    "HasFirstSubevent",
+    "HasLastSubevent",
+    "HasPainCharacter",
+    "HasPainIntensity",
+    "HasPrerequisite",
+    "HasSubEvent",
+    "HinderedBy",
+    "InheritsFrom",
+    "InstanceOf",
+    "isAfter",
+    "isBefore",
+    "MadeOf",
+    "MadeUpOf",
+    "MotivatedByGoal",
+    "NotCapableOf",
+    "NotDesires",
+    "PartOf",
+    "ReceivesAction",
+    "xReason",
 }
+
+import re
+
+RELATION_PATTERN = re.compile(
+    r"^(.*?)\s+("
+    + "|".join(sorted(map(re.escape, VALID_RELATIONS), key=len, reverse=True))
+    + r")\s+\[GEN\]$"
+)
 
 # Default HF dataset ids
 ATOMIC_HF_PATH = "Estwld/atomic-comet-origin"  # placeholder; keep original atomic local by default
@@ -37,7 +76,7 @@ ATOMIC2020_HF_PATH = "Estwld/atomic2020-comet-origin"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LOCAL_ATOMIC_PATH = PROJECT_ROOT / "data" / "atomic"
-DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic2020"
+DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic2020_tuples"
 
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
 _OFFICIAL_SPLIT_FILES = {
@@ -119,7 +158,6 @@ def sample_heads_per_relation(
     )
     relation_order: list[str] = []
     head_order: dict[str, list[str]] = defaultdict(list)
-    breakpoint()
     for instance in instances:
         if instance.relation not in by_relation_head:
             relation_order.append(instance.relation)
@@ -230,28 +268,121 @@ def load_atomic2020_instances(
         raise ValueError(f"Split {split!r} is unavailable. Available splits: {available}.")
     return list(iter_relation_instances(dataset[canonical_split], split=split))
 
+def iter_relation_instances(
+    rows: Iterable[Mapping[str, Any]],
+    split: str,
+) -> Iterable[RelationInstance]:
+    """
+    Normalize ATOMIC datasets into RelationInstance objects.
 
-def iter_relation_instances(rows: Iterable[Mapping[str, Any]], split: str) -> Iterable[RelationInstance]:
-    """Normalize ATOMIC rows into one instance per ``(event, relation, target)`` pair."""
+    Supported formats
+    -----------------
+
+    1. Original ATOMIC
+        event | xNeed | xWant | ...
+
+    2. Explicit triples
+        head | relation | tail
+
+    3. Processed ATOMIC2020
+        input | output
+        input = "<head> <relation> [GEN]"
+    """
+
     for row_index, row in enumerate(rows):
-        head = _first_text(row, _HEAD_COLUMNS)
+
         row_id = str(row.get("id", row.get("ID", row_index)))
+
+        #
+        # ------------------------------------------------------------------
+        # FORMAT 1 : Explicit tuples
+        #
+        # head | relation | tail
+        # ------------------------------------------------------------------
+        #
+
         relation = row.get("relation") or row.get("rel")
         tail = row.get("tail") or row.get("target")
+
         if relation is not None and tail is not None:
+
+            head = _first_text(row, _HEAD_COLUMNS)
+
             for tail_index, candidate in enumerate(_tails(tail)):
                 if candidate:
                     suffix = "" if tail_index == 0 else f":{tail_index}"
-                    yield RelationInstance(_clean(head), _clean(relation), candidate, split, f"{row_id}{suffix}")
+
+                    yield RelationInstance(
+                        head=_clean(head),
+                        relation=_clean(relation),
+                        tail=candidate,
+                        split=split,
+                        id=f"{row_id}{suffix}",
+                    )
+
             continue
 
+        #
+        # ------------------------------------------------------------------
+        # FORMAT 2 : Processed ATOMIC2020
+        #
+        # input  = "... oEffect [GEN]"
+        # output = "..."
+        # ------------------------------------------------------------------
+        #
+
+        if "input" in row and "output" in row:
+
+            match = RELATION_PATTERN.match(str(row["input"]))
+
+            if match is not None:
+
+                head = match.group(1).strip()
+                relation = match.group(2)
+
+                for tail_index, candidate in enumerate(_tails(row["output"])):
+
+                    if candidate:
+
+                        suffix = "" if tail_index == 0 else f":{tail_index}"
+
+                        yield RelationInstance(
+                            head=head,
+                            relation=relation,
+                            tail=candidate,
+                            split=split,
+                            id=f"{row_id}{suffix}",
+                        )
+
+                continue
+
+        #
+        # ------------------------------------------------------------------
+        # FORMAT 3 : Original ATOMIC
+        #
+        # event | xNeed | xWant | ...
+        # ------------------------------------------------------------------
+        #
+
+        head = _first_text(row, _HEAD_COLUMNS)
+
         for key, value in row.items():
+
             if key in {*_ID_COLUMNS, *_HEAD_COLUMNS, "split", "prefix"}:
                 continue
-            for tail_index, candidate in enumerate(_tails(value)):
-                if candidate:
-                    yield RelationInstance(_clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}")
 
+            for tail_index, candidate in enumerate(_tails(value)):
+
+                if not candidate:
+                    continue
+
+                yield RelationInstance(
+                    head=_clean(head),
+                    relation=_clean(key),
+                    tail=candidate,
+                    split=split,
+                    id=f"{row_id}:{key}:{tail_index}",
+                )
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():
