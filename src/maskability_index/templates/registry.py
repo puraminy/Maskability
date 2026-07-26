@@ -1,7 +1,14 @@
-"""Relation template registry for ATOMIC-style prompt verbalizers."""
+"""Relation template registry for ATOMIC-style prompt verbalizers.
+
+This module intentionally falls back to a generic template when a relation is
+not registered, to avoid crashing experiments when dataset relation names differ
+or contain unexpected keys (for example: `output`). The fallback emits a
+warning so dataset/registry mismatches are visible in logs.
+"""
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -29,7 +36,13 @@ class RelationTemplate:
 
 
 class TemplateRegistry:
-    """Registry of relation names to reusable prompt templates."""
+    """Registry of relation names to reusable prompt templates.
+
+    If a template lookup fails, a generic fallback RelationTemplate is returned
+    and a warning is emitted. This prevents crashes when datasets contain
+    unexpected relation column names (for example `output`) while making the
+    mismatch visible to the user.
+    """
 
     def __init__(self, templates: Mapping[str, RelationTemplate] | None = None) -> None:
         """Create a registry from optional initial templates."""
@@ -40,15 +53,26 @@ class TemplateRegistry:
         self._templates[template.relation] = template
 
     def get(self, relation: str) -> RelationTemplate:
-        """Return the template for a relation, preserving exact relation keys."""
+        """Return the template for a relation, preserving exact relation keys.
+
+        If the relation is not registered, return a fallback template that uses
+        the relation name as a phrase and emit a warning so callers can detect
+        and (optionally) log the mismatch.
+        """
         try:
             return self._templates[relation]
-        except KeyError as exc:
-            raise KeyError(f"No template registered for relation {relation!r}.") from exc
+        except KeyError:
+            warnings.warn(
+                f"No template registered for relation {relation!r}; using fallback template."
+            )
+            # Derive a readable phrase from the relation key as a best-effort fallback
+            phrase = relation.replace("_", " ")
+            return RelationTemplate(relation=relation, phrase=phrase)
 
     def list_relations(self) -> list[str]:
         """List relations with registered templates in deterministic order."""
         return sorted(self._templates)
+
 
 CANONICAL_ATOMIC_PHRASES: dict[str, str] = {
     "AtLocation": "located at",
