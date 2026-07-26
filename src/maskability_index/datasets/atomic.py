@@ -76,7 +76,7 @@ ATOMIC2020_HF_PATH = "Estwld/atomic2020-comet-origin"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LOCAL_ATOMIC_PATH = PROJECT_ROOT / "data" / "atomic"
-DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic2020_tuples"
+DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic2020_500"
 
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
 _OFFICIAL_SPLIT_FILES = {

@@ -1,71 +1,71 @@
 relation,head,tail,prefix_prompt,masked_prompt,few_shot_prompt
-xNeed,PersonX wears ___ to the park,to go to the park,PersonX wears ___ to the park before that they need,PersonX wears ___ to the park before that they need <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+isAfter,PersonX quits my job,PersonX receives a bad performance review,PersonX quits my job happens after,PersonX quits my job happens after <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX wears ___ to the park before that they need"
-isFilledBy,PersonX borrows ___ from the library,books,PersonX borrows ___ from the library is filled by,PersonX borrows ___ from the library is filled by <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+PersonX quits my job happens after"
+ObjectUse,boss,storm in,boss is used for,boss is used for <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX borrows ___ from the library is filled by"
-xAttr,PersonX loses PersonX's husband,mournful,PersonX loses PersonX's husband is seen as,PersonX loses PersonX's husband is seen as <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+boss is used for"
+HinderedBy,PersonX blows PersonY away,PersonY is never impressed by anything.,PersonX blows PersonY away can be hindered by,PersonX blows PersonY away can be hindered by <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX loses PersonX's husband is seen as"
-HasSubEvent,relax,being comfortable,relax includes the event,relax includes the event <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+PersonX blows PersonY away can be hindered by"
+xEffect,PersonX accepts into college,Gets a loan,"PersonX accepts into college as a result, PersonX","PersonX accepts into college as a result, PersonX <extra_id_0>","PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-relax includes the event"
-xEffect,PersonX blows this pop stand,takes a sigh of relief,"PersonX blows this pop stand as a result, PersonX","PersonX blows this pop stand as a result, PersonX <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
+PersonX accepts into college as a result, PersonX"
+HinderedBy,PersonX leaves no stone unturned,PersonX has run out of money and has to return home,PersonX leaves no stone unturned can be hindered by,PersonX leaves no stone unturned can be hindered by <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX blows this pop stand as a result, PersonX"
-xNeed,water plant,put water on dirt,water plant before that they need,water plant before that they need <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+PersonX leaves no stone unturned can be hindered by"
+oReact,PersonX advances upon PersonY,obtainment,"PersonX advances upon PersonY as a result, others feel","PersonX advances upon PersonY as a result, others feel <extra_id_0>","PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-water plant before that they need"
-xReact,PersonX tucks PersonX in,relaxed,"PersonX tucks PersonX in as a result, PersonX feels","PersonX tucks PersonX in as a result, PersonX feels <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
+PersonX advances upon PersonY as a result, others feel"
+AtLocation,bank,main street,bank located at,bank located at <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX tucks PersonX in as a result, PersonX feels"
-HinderedBy,PersonX is pretty damn good,PesonX's still likes to party with hookers.,PersonX is pretty damn good can be hindered by,PersonX is pretty damn good can be hindered by <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+bank located at"
+xWant,PersonX accidentally cut ___,to save him,PersonX accidentally cut ___ after that they want,PersonX accidentally cut ___ after that they want <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX is pretty damn good can be hindered by"
-xEffect,PersonX has just moved to a new city,person  x has to unpack,"PersonX has just moved to a new city as a result, PersonX","PersonX has just moved to a new city as a result, PersonX <extra_id_0>","PersonX wears ___ to the park before that they need to go to the park
+PersonX accidentally cut ___ after that they want"
+Causes,medication,allergic reaction,medication causes,medication causes <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX has just moved to a new city as a result, PersonX"
-xAttr,PersonX keeps PersonY afloat,tolerant,PersonX keeps PersonY afloat is seen as,PersonX keeps PersonY afloat is seen as <extra_id_0>,"PersonX wears ___ to the park before that they need to go to the park
+medication causes"
+NotDesires,person,break legs,person does not desire,person does not desire <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
 
-PersonX borrows ___ from the library is filled by books
+boss is used for storm in
 
-PersonX loses PersonX's husband is seen as mournful
+PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
 
-PersonX keeps PersonY afloat is seen as"
+person does not desire"
