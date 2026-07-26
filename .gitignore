@@ -12,14 +12,14 @@ data/cache/
 results/**
 !results/.gitkeep
 
-# Large datasets
 data/atomic/
 data/atomic2020/
 data/atomic2020_tuples/
-cache/
+data/cache/
 
-# Ignore generated ATOMIC2020 subsets by default
-atomic2020_*
+# Ignore all generated atomic2020_* datasets
+data/atomic2020_*
 
-# Keep sampled datasets: atomic2020_<number>
-!atomic2020_[0-9]*
+# ...except sampled ones like atomic2020_500
+!data/atomic2020_[0-9]*/
+
