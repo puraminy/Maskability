@@ -1,5 +1,10 @@
-"""ATOMIC2020 CSV dataset loading and normalization."""
+"""ATOMIC and ATOMIC2020 CSV dataset loading and normalization with HF auto-download/cache.
 
+Maintains backward compatibility with the original loader API while introducing:
+- explicit dataset configurations (atomic vs atomic2020)
+- backend=auto behavior: try local -> hf download -> save locally -> use local cached copy
+- configurable HF path (default for atomic2020: Estwld/atomic2020-comet-origin)
+"""
 from __future__ import annotations
 
 import ast
@@ -9,7 +14,9 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Optional, Mapping as TypingMapping
+
+from .manager import DatasetConfig, hf_download_and_cache
 
 VALID_RELATIONS = {
     "xAttr",
@@ -21,12 +28,16 @@ VALID_RELATIONS = {
     "oEffect",
     "oReact",
     "oWant",
+    # legacy relations still tolerated (paper uses a subset)
 }
 
-ATOMIC2020_HF_PATH = "allenai/atomic2020"
+# Default HF dataset ids
+ATOMIC_HF_PATH = "Estwld/atomic-comet-origin"  # placeholder; keep original atomic local by default
+ATOMIC2020_HF_PATH = "Estwld/atomic2020-comet-origin"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic"
+DEFAULT_LOCAL_ATOMIC_PATH = PROJECT_ROOT / "data" / "atomic"
+DEFAULT_LOCAL_ATOMIC2020_PATH = PROJECT_ROOT / "data" / "atomic2020"
 
 SPLIT_ALIASES = {"dev": "validation", "valid": "validation", "val": "validation"}
 _OFFICIAL_SPLIT_FILES = {
@@ -51,7 +62,6 @@ class RelationInstance:
 
 
 def canonical_split_name(split: str) -> str:
-    """Map user-facing split aliases to canonical split names."""
     return SPLIT_ALIASES.get(split, split)
 
 
@@ -62,13 +72,6 @@ def sample_instances_per_relation(
     strategy: str = "deterministic",
     seed: int | None = None,
 ) -> list[RelationInstance]:
-    """Sample a configurable number of instances independently for each relation.
-
-    ``deterministic`` preserves the loaded dataset order within each relation.
-    ``random`` uses a local RNG seeded by ``seed`` so reviewer robustness sweeps are
-    reproducible without mutating global random state. Relations with fewer than the
-    requested number of examples keep all available examples.
-    """
     if instances_per_relation is None:
         return list(instances)
     if instances_per_relation < 1:
@@ -96,7 +99,6 @@ def sample_instances_per_relation(
     return sampled
 
 
-
 def sample_heads_per_relation(
     instances: Sequence[RelationInstance],
     *,
@@ -105,12 +107,6 @@ def sample_heads_per_relation(
     strategy: str = "deterministic",
     seed: int | None = None,
 ) -> list[RelationInstance]:
-    """Sample held-out evaluation heads independently from few-shot examples.
-
-    DepthRank/MI evaluation is defined over heads, not raw triples. This helper
-    selects up to ``heads_per_relation`` distinct heads per relation, then keeps
-    up to ``max_reference_tails`` tails for each selected head.
-    """
     if heads_per_relation is not None and heads_per_relation < 1:
         raise ValueError("heads_per_relation must be at least 1 when configured.")
     if max_reference_tails is not None and max_reference_tails < 1:
@@ -148,18 +144,10 @@ def sample_heads_per_relation(
             sampled.extend(tails[:max_reference_tails])
     return sampled
 
-def filter_instances_by_relations(
-    instances: Sequence[RelationInstance],
-    *,
-    mode: str = "dataset",
-    selected: Sequence[str] | None = None,
-) -> list[RelationInstance]:
-    """Select relations explicitly and reproducibly.
 
-    Modes:
-    - ``all`` keeps every relation present in the loaded dataset.
-    - ``selected`` keeps only the configured relation names, preserving dataset order.
-    """
+def filter_instances_by_relations(
+    instances: Sequence[RelationInstance], *, mode: str = "dataset", selected: Sequence[str] | None = None
+) -> list[RelationInstance]:
     if mode not in {"all", "selected"}:
         raise ValueError("relations.mode must be one of 'all' or 'selected'.")
     if mode == "all":
@@ -169,56 +157,72 @@ def filter_instances_by_relations(
         raise ValueError("relations.selected must be non-empty when relations.mode='selected'.")
     return [instance for instance in instances if instance.relation in selected_set]
 
+
+#
+# Backwards compatible loader API for ATOMIC2020
+#
 def load_atomic2020_dataset(
     cache_dir: str | None = None,
     *,
     local_path: str | Path | None = None,
-    hf_path: str = ATOMIC2020_HF_PATH,
+    hf_path: str | None = None,
     backend: AtomicBackend = "auto",
-) -> Mapping[str, Any]:
+) -> TypingMapping[str, Any]:
     """Load ATOMIC2020 while preserving the historical dataset-returning API.
 
-    The default backend reads the official ATOMIC CSV files from ``data/atomic`` and never
-    downloads data. ``backend='hf'`` remains available as an explicit, separate future backend.
+    New behavior (backend="auto"):
+      1. Try local_path (default data/atomic2020)
+      2. If not present or incomplete and backend="auto": download hf_path and save locally
+      3. Return a mapping of split -> list[dict] (same shape as original CSV loader)
     """
-    errors: list[str] = []
     if backend not in {"auto", "csv", "local", "hf"}:
         raise ValueError("backend must be one of 'auto', 'csv', 'local', or 'hf'.")
 
-    if backend in {"auto", "csv", "local"}:
-        candidate = Path(local_path or DEFAULT_LOCAL_ATOMIC2020_PATH)
-        if candidate.exists():
-            try:
-                return _load_atomic_csv_dataset(candidate)
-            except Exception as exc:
-                if backend in {"csv", "local"}:
-                    raise
-                errors.append(f"CSV {candidate}: {exc}")
-        elif backend in {"csv", "local"}:
-            raise FileNotFoundError(f"Local ATOMIC CSV path does not exist: {candidate}")
+    hf_path = hf_path or ATOMIC2020_HF_PATH
+    candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
 
+    # prefer local CSV files if backend explicitly csv/local
+    if backend in {"csv", "local"}:
+        if candidate.exists():
+            return _load_atomic_csv_dataset(candidate)
+        raise FileNotFoundError(f"Local ATOMIC2020 CSV path does not exist: {candidate}")
+
+    # backend == 'hf' -> direct HF load
     if backend == "hf":
         return _load_hf_atomic2020_dataset(hf_path, cache_dir=cache_dir)
 
-    detail = " | ".join(errors) if errors else "no local CSV files were available"
-    raise RuntimeError(
-        "Could not load ATOMIC2020. Download and extract the official CSV files under "
-        f"{DEFAULT_LOCAL_ATOMIC2020_PATH!r}; automatic downloads are disabled. {detail}"
-    )
+    # backend == 'auto'
+    if backend == "auto":
+        # local available and valid?
+        if candidate.exists():
+            try:
+                return _load_atomic_csv_dataset(candidate)
+            except Exception:
+                # fallthrough to HF
+                pass
+
+        # attempt HF download and cache
+        try:
+            ds = hf_download_and_cache(hf_path, candidate, cache_dir=cache_dir)
+            # ds is a DatasetDict (HF). Convert to list-of-dicts for compatibility
+            return {split: [dict(row) for row in ds[split]] for split in ds.keys()}
+        except Exception as exc:
+            # If HF attempt fails, present the same helpful message as before
+            raise RuntimeError(
+                "Could not load ATOMIC2020. Attempted local CSV then HuggingFace download, "
+                f"but both failed. Last error: {exc}"
+            ) from exc
 
 
 def load_atomic2020_instances(
     split: str = "train",
     cache_dir: str | None = None,
-    hf_path: str = ATOMIC2020_HF_PATH,
+    hf_path: str | None = None,
     *,
     local_path: str | Path | None = None,
     backend: AtomicBackend = "auto",
 ) -> list[RelationInstance]:
-    """Load ATOMIC2020 as strongly typed relation instances."""
-    dataset = load_atomic2020_dataset(
-        cache_dir=cache_dir, local_path=local_path, hf_path=hf_path, backend=backend
-    )
+    dataset = load_atomic2020_dataset(cache_dir=cache_dir, local_path=local_path, hf_path=hf_path, backend=backend)
     canonical_split = canonical_split_name(split)
     if canonical_split not in dataset:
         available = ", ".join(dataset.keys())
@@ -226,9 +230,7 @@ def load_atomic2020_instances(
     return list(iter_relation_instances(dataset[canonical_split], split=split))
 
 
-def iter_relation_instances(
-    rows: Iterable[Mapping[str, Any]], split: str
-) -> Iterable[RelationInstance]:
+def iter_relation_instances(rows: Iterable[Mapping[str, Any]], split: str) -> Iterable[RelationInstance]:
     """Normalize ATOMIC rows into one instance per ``(event, relation, target)`` pair."""
     for row_index, row in enumerate(rows):
         head = _first_text(row, _HEAD_COLUMNS)
@@ -239,65 +241,50 @@ def iter_relation_instances(
             for tail_index, candidate in enumerate(_tails(tail)):
                 if candidate:
                     suffix = "" if tail_index == 0 else f":{tail_index}"
-                    yield RelationInstance(
-                        _clean(head), _clean(relation), candidate, split, f"{row_id}{suffix}"
-                    )
+                    yield RelationInstance(_clean(head), _clean(relation), candidate, split, f"{row_id}{suffix}")
             continue
 
-        #for relation in VALID_RELATIONS:
-        #    if relation not in row:
-        #        continue
-
-        #    value = row[relation]
-
-        #    for tail_index, candidate in enumerate(_tails(value)):
-        #        if candidate:
-        #            yield RelationInstance(
-        #                _clean(head),
-        #                relation,
-        #                candidate,
-        #                split,
-        #                f"{row_id}:{relation}:{tail_index}",
-        #            )
         for key, value in row.items():
             if key in {*_ID_COLUMNS, *_HEAD_COLUMNS, "split", "prefix"}:
                 continue
             for tail_index, candidate in enumerate(_tails(value)):
                 if candidate:
-                    yield RelationInstance(
-                        _clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}"
-                    )
+                    yield RelationInstance(_clean(head), _clean(key), candidate, split, f"{row_id}:{key}:{tail_index}")
 
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():
         return {_split_from_file(path): _read_atomic_csv(path)}
     dataset: dict[str, list[dict[str, Any]]] = {}
+    # Accept both official split filenames and generic CSVs in the directory
     for split, filename in _OFFICIAL_SPLIT_FILES.items():
         file_path = path / filename
         if file_path.exists():
             dataset[split] = _read_atomic_csv(file_path)
+    # fallback: any csv file in directory -> infer split from name
+    if not dataset:
+        for child in sorted(path.iterdir()):
+            if child.suffix.lower() == ".csv":
+                dataset[_split_from_file(child)] = _read_atomic_csv(child)
     if not dataset:
         raise FileNotFoundError(
-            f"No official ATOMIC CSV split files found in {path}. Expected: "
-            + ", ".join(_OFFICIAL_SPLIT_FILES.values())
+            f"No ATOMIC CSV split files found in {path}. Expected: " + ", ".join(_OFFICIAL_SPLIT_FILES.values())
         )
     return dataset
 
 
-def _load_hf_atomic2020_dataset(hf_path: str, cache_dir: str | None = None) -> Mapping[str, Any]:
-    """Load an explicitly requested HuggingFace backend without using it by default."""
+def _load_hf_atomic2020_dataset(hf_path: str, cache_dir: str | None = None) -> TypingMapping[str, Any]:
+    """Load from HF without caching locally (explicit hf backend)."""
     try:
         from datasets import DatasetDict, load_dataset
-    except ImportError as exc:  # pragma: no cover - optional future backend only
-        raise ImportError(
-            "Install the `datasets` package to use the HuggingFace ATOMIC backend."
-        ) from exc
+    except ImportError as exc:
+        raise ImportError("Install the `datasets` package to use the HuggingFace ATOMIC backend.") from exc
 
     dataset = load_dataset(hf_path, cache_dir=cache_dir)
-    if not isinstance(dataset, DatasetDict):
+    if not isinstance(dataset, dict):  # DatasetDict under the hood behaves like dict
         raise TypeError(f"Expected DatasetDict for {hf_path!r}, got {type(dataset).__name__}.")
-    return dataset
+    # convert to mapping of split->list[dict]
+    return {split: [dict(row) for row in dataset[split]] for split in dataset.keys()}
 
 
 def _split_from_file(path: Path) -> str:
@@ -320,7 +307,6 @@ def _first_text(row: Mapping[str, Any], keys: Sequence[str]) -> str:
 
 
 def _tails(value: Any) -> list[str]:
-    """Parse official ATOMIC list-valued CSV cells and filter null targets."""
     if value is None:
         return []
     if isinstance(value, str):
