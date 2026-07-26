@@ -119,6 +119,7 @@ def sample_heads_per_relation(
     )
     relation_order: list[str] = []
     head_order: dict[str, list[str]] = defaultdict(list)
+    breakpoint()
     for instance in instances:
         if instance.relation not in by_relation_head:
             relation_order.append(instance.relation)
