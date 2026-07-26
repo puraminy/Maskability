@@ -1,6 +1,7 @@
-"""Dataset loading public API."""
+"""Dataset loading public API and configuration utilities."""
 
-from maskability_index.datasets.atomic import (
+from .manager import DatasetConfig
+from .atomic import (
     ATOMIC2020_HF_PATH,
     RelationInstance,
     canonical_split_name,
@@ -10,9 +11,12 @@ from maskability_index.datasets.atomic import (
     sample_heads_per_relation,
     sample_instances_per_relation,
 )
-from maskability_index.datasets.loader import load_hf_dataset
+
+# Keep loader helper import for backwards compat if other code imports it
+from .loader import load_hf_dataset
 
 __all__ = [
+    "DatasetConfig",
     "ATOMIC2020_HF_PATH",
     "RelationInstance",
     "canonical_split_name",
