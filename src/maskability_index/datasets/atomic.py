@@ -223,7 +223,9 @@ def load_atomic2020_dataset(
     # Arrow/HF save_to_disk format
     print("Loading dataset...")
     if not candidate.exists():
-        print(f"WARNING: doesnt {candidate} exists")
+        print(f"WARNING: {candidate} doesn't exist")
+    else:
+        print(f"Info: local file: {candidate}")
 
     if backend in {"arrow", "local"}:
         if (candidate / "dataset_info.json").exists():
