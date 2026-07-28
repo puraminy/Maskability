@@ -122,6 +122,7 @@ class ExperimentRunner:
         set_seed(int(cfg.experiment.seed))
         write_config(output_dir / "config.yaml", cfg)
         instances = self._load_dataset()
+        assert len(instances) > 0, "No instances found!!"
         bundle = self._create_model_bundle()
         device = self._device()
         depthrank_calculator = self._create_depthrank_calculator(
