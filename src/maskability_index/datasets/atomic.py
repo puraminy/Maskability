@@ -206,6 +206,7 @@ def load_atomic2020_dataset(
     local_path: str | Path | None = None,
     hf_path: str | None = None,
     backend: AtomicBackend = "auto",
+    split: str | None = None,
 ) -> TypingMapping[str, Any]:
     """Load ATOMIC2020 while preserving the historical dataset-returning API.
 
@@ -218,7 +219,7 @@ def load_atomic2020_dataset(
         raise ValueError("backend must be one of 'auto', 'csv', 'arrow', 'local', or 'hf'.")
 
     hf_path = hf_path or ATOMIC2020_HF_PATH
-    candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
+    candidate = Path(local_path) / split if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
 
     # Arrow/HF save_to_disk format
     print("Loading dataset...")
@@ -274,7 +275,7 @@ def load_atomic2020_instances(
 ) -> list[RelationInstance]:
     dataset = load_atomic2020_dataset(cache_dir=cache_dir, 
                                       local_path=local_path, 
-                                      hf_path=hf_path, backend=backend)
+                                      hf_path=hf_path, backend=backend, split=split)
     canonical_split = canonical_split_name(split)
     if canonical_split not in dataset:
         available = ", ".join(dataset.keys())
