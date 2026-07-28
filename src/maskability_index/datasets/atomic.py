@@ -86,7 +86,7 @@ _OFFICIAL_SPLIT_FILES = {
 }
 _HEAD_COLUMNS = ("event", "head", "Event", "source", "input", "head_event")
 _ID_COLUMNS = {"id", "ID"}
-AtomicBackend = Literal["auto", "csv", "local", "hf"]
+AtomicBackend = Literal["auto", "csv", "arrow", "local", "hf"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -214,11 +214,16 @@ def load_atomic2020_dataset(
       2. If not present or incomplete and backend="auto": download hf_path and save locally
       3. Return a mapping of split -> list[dict] (same shape as original CSV loader)
     """
-    if backend not in {"auto", "csv", "local", "hf"}:
-        raise ValueError("backend must be one of 'auto', 'csv', 'local', or 'hf'.")
+    if backend not in {"auto", "csv", "arrow", "local", "hf"}:
+        raise ValueError("backend must be one of 'auto', 'csv', 'arrow', 'local', or 'hf'.")
 
     hf_path = hf_path or ATOMIC2020_HF_PATH
     candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
+
+    # Arrow/HF save_to_disk format
+    if backend in {"arrow", "local"}:
+        if (candidate / "dataset_info.json").exists():
+            return _load_arrow_atomic2020_dataset(candidate)
 
     # prefer local CSV files if backend explicitly csv/local
     if backend in {"csv", "local"}:
@@ -232,15 +237,21 @@ def load_atomic2020_dataset(
 
     # backend == 'auto'
     if backend == "auto":
-        # local available and valid?
+        # 1. try Arrow dataset
+        if candidate.exists() and (candidate / "dataset_info.json").exists():
+            try:
+                return _load_arrow_atomic2020_dataset(candidate)
+            except Exception:
+                pass
+
+        # 2. try CSV
         if candidate.exists():
             try:
                 return _load_atomic_csv_dataset(candidate)
             except Exception:
-                # fallthrough to HF
                 pass
 
-        # attempt HF download and cache
+        # 3. download from HF
         try:
             ds = hf_download_and_cache(hf_path, candidate, cache_dir=cache_dir)
             # ds is a DatasetDict (HF). Convert to list-of-dicts for compatibility
@@ -252,7 +263,6 @@ def load_atomic2020_dataset(
                 f"but both failed. Last error: {exc}"
             ) from exc
 
-
 def load_atomic2020_instances(
     split: str = "train",
     cache_dir: str | None = None,
@@ -261,7 +271,9 @@ def load_atomic2020_instances(
     local_path: str | Path | None = None,
     backend: AtomicBackend = "auto",
 ) -> list[RelationInstance]:
-    dataset = load_atomic2020_dataset(cache_dir=cache_dir, local_path=local_path, hf_path=hf_path, backend=backend)
+    dataset = load_atomic2020_dataset(cache_dir=cache_dir, 
+                                      local_path=local_path, 
+                                      hf_path=hf_path, backend=backend)
     canonical_split = canonical_split_name(split)
     if canonical_split not in dataset:
         available = ", ".join(dataset.keys())
@@ -383,6 +395,28 @@ def iter_relation_instances(
                     split=split,
                     id=f"{row_id}:{key}:{tail_index}",
                 )
+
+def _load_arrow_atomic2020_dataset(path: Path) -> TypingMapping[str, Any]:
+    try:
+        from datasets import load_from_disk
+    except ImportError as exc:
+        raise ImportError(
+            "Install the `datasets` package to use Arrow datasets."
+        ) from exc
+
+    print("Loading arrow dataset from disk...")
+    dataset = load_from_disk(str(path))
+
+    if hasattr(dataset, "keys"):  # DatasetDict
+        return {
+            split: [dict(row) for row in dataset[split]]
+            for split in dataset.keys()
+        }
+
+    # Single Dataset
+    return {
+        "train": [dict(row) for row in dataset]
+    }
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
     if path.is_file():
