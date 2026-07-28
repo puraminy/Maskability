@@ -221,12 +221,17 @@ def load_atomic2020_dataset(
     candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
 
     # Arrow/HF save_to_disk format
+    print("Loading dataset...")
+    if not candidate.exists():
+        print(f"WARNING: doesnt {candidate} exists")
+
     if backend in {"arrow", "local"}:
         if (candidate / "dataset_info.json").exists():
             return _load_arrow_atomic2020_dataset(candidate)
+        raise FileNotFoundError(f"Local ATOMIC2020 arrow path does not exist: {candidate}")
 
     # prefer local CSV files if backend explicitly csv/local
-    if backend in {"csv", "local"}:
+    if backend in {"csv", "arrow", "local"}:
         if candidate.exists():
             return _load_atomic_csv_dataset(candidate)
         raise FileNotFoundError(f"Local ATOMIC2020 CSV path does not exist: {candidate}")

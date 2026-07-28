@@ -17,7 +17,7 @@ relations:
     - xWant
 
 dataset:
-  backend: arrow
+  backend: auto
   name: atomic2020
   hf_path: Estwld/atomic2020-comet-origin
   cache_dir: data/cache
