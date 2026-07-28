@@ -244,17 +244,11 @@ def load_atomic2020_dataset(
     if backend == "auto":
         # 1. try Arrow dataset
         if candidate.exists() and (candidate / "dataset_info.json").exists():
-            try:
-                return _load_arrow_atomic2020_dataset(candidate)
-            except Exception:
-                pass
+            return _load_arrow_atomic2020_dataset(candidate)
 
         # 2. try CSV
         if candidate.exists():
-            try:
-                return _load_atomic_csv_dataset(candidate)
-            except Exception:
-                pass
+            return _load_atomic_csv_dataset(candidate)
 
         # 3. download from HF
         try:
