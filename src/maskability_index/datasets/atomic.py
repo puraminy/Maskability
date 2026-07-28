@@ -219,7 +219,7 @@ def load_atomic2020_dataset(
         raise ValueError("backend must be one of 'auto', 'csv', 'arrow', 'local', or 'hf'.")
 
     hf_path = hf_path or ATOMIC2020_HF_PATH
-    candidate = Path(local_path) / split if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
+    candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
 
     # Arrow/HF save_to_disk format
     print("Loading dataset...")
@@ -229,8 +229,8 @@ def load_atomic2020_dataset(
         print(f"Info: local file: {candidate}")
 
     if backend in {"arrow", "local"}:
-        if (candidate / "dataset_info.json").exists():
-            return _load_arrow_atomic2020_dataset(candidate)
+        if (candidate / Path(split) / "dataset_info.json").exists():
+            return _load_arrow_atomic2020_dataset(candidate, split)
         raise FileNotFoundError(f"Local ATOMIC2020 arrow path does not exist: {candidate}")
 
     # prefer local CSV files if backend explicitly csv/local
@@ -246,8 +246,8 @@ def load_atomic2020_dataset(
     # backend == 'auto'
     if backend == "auto":
         # 1. try Arrow dataset
-        if candidate.exists() and (candidate / "dataset_info.json").exists():
-            return _load_arrow_atomic2020_dataset(candidate)
+        if candidate.exists() and (candidate / Path(split) / "dataset_info.json").exists():
+            return _load_arrow_atomic2020_dataset(candidate, split)
 
         # 2. try CSV
         if candidate.exists():
@@ -398,7 +398,7 @@ def iter_relation_instances(
                     id=f"{row_id}:{key}:{tail_index}",
                 )
 
-def _load_arrow_atomic2020_dataset(path: Path) -> TypingMapping[str, Any]:
+def _load_arrow_atomic2020_dataset(path: Path, split:str) -> TypingMapping[str, Any]:
     try:
         from datasets import load_from_disk
     except ImportError as exc:
@@ -407,7 +407,8 @@ def _load_arrow_atomic2020_dataset(path: Path) -> TypingMapping[str, Any]:
         ) from exc
 
     print("Loading arrow dataset from disk...")
-    dataset = load_from_disk(str(path))
+    ds_path = path / Path(split)
+    dataset = load_from_disk(str(ds_path))
 
     if hasattr(dataset, "keys"):  # DatasetDict
         return {
@@ -417,7 +418,7 @@ def _load_arrow_atomic2020_dataset(path: Path) -> TypingMapping[str, Any]:
 
     # Single Dataset
     return {
-        "train": [dict(row) for row in dataset]
+        canonical_split_name(split): [dict(row) for row in dataset]
     }
 
 def _load_atomic_csv_dataset(path: Path) -> dict[str, list[dict[str, Any]]]:
