@@ -53,7 +53,7 @@ def main() -> None:
 
 def _load_demo_instances() -> list[RelationInstance]:
     """Load ATOMIC2020 examples through the production dataset loader."""
-    return load_atomic2020_instances(split="train", cache_dir="data/cache")
+    return load_atomic2020_instances(split="validation", cache_dir="data/cache")
 
 
 if __name__ == "__main__":

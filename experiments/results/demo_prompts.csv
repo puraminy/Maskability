@@ -1,71 +1,50 @@
 relation,head,tail,prefix_prompt,masked_prompt,few_shot_prompt
-isAfter,PersonX quits my job,PersonX receives a bad performance review,PersonX quits my job happens after,PersonX quits my job happens after <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
+Causes,telepathy,unwanted information to learned,telepathy causes,telepathy causes <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-PersonX quits my job happens after"
-ObjectUse,boss,storm in,boss is used for,boss is used for <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
+telepathy causes"
+Causes,hunger,starvation,hunger causes,hunger causes <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-boss is used for"
-HinderedBy,PersonX blows PersonY away,PersonY is never impressed by anything.,PersonX blows PersonY away can be hindered by,PersonX blows PersonY away can be hindered by <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
+hunger causes"
+xReason,exercise,you're fat,exercise because PersonX wanted,exercise because PersonX wanted <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-PersonX blows PersonY away can be hindered by"
-xEffect,PersonX accepts into college,Gets a loan,"PersonX accepts into college as a result, PersonX","PersonX accepts into college as a result, PersonX <extra_id_0>","PersonX quits my job happens after PersonX receives a bad performance review
+exercise because PersonX wanted"
+Causes,hunger,discomfort,hunger causes,hunger causes <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-PersonX accepts into college as a result, PersonX"
-HinderedBy,PersonX leaves no stone unturned,PersonX has run out of money and has to return home,PersonX leaves no stone unturned can be hindered by,PersonX leaves no stone unturned can be hindered by <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
+hunger causes"
+xReason,exercise,getting fat,exercise because PersonX wanted,exercise because PersonX wanted <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-PersonX leaves no stone unturned can be hindered by"
-oReact,PersonX advances upon PersonY,obtainment,"PersonX advances upon PersonY as a result, others feel","PersonX advances upon PersonY as a result, others feel <extra_id_0>","PersonX quits my job happens after PersonX receives a bad performance review
+exercise because PersonX wanted"
+Causes,lighening,thunder,lighening causes,lighening causes <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-PersonX advances upon PersonY as a result, others feel"
-AtLocation,bank,main street,bank located at,bank located at <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
+lighening causes"
+Causes,hunger,eating,hunger causes,hunger causes <extra_id_0>,"telepathy causes unwanted information to learned
 
-boss is used for storm in
+hunger causes starvation
 
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
+exercise because PersonX wanted you're fat
 
-bank located at"
-xWant,PersonX accidentally cut ___,to save him,PersonX accidentally cut ___ after that they want,PersonX accidentally cut ___ after that they want <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
-
-boss is used for storm in
-
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
-
-PersonX accidentally cut ___ after that they want"
-Causes,medication,allergic reaction,medication causes,medication causes <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
-
-boss is used for storm in
-
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
-
-medication causes"
-NotDesires,person,break legs,person does not desire,person does not desire <extra_id_0>,"PersonX quits my job happens after PersonX receives a bad performance review
-
-boss is used for storm in
-
-PersonX blows PersonY away can be hindered by PersonY is never impressed by anything.
-
-person does not desire"
+hunger causes"

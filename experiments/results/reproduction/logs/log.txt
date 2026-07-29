@@ -1,0 +1,83 @@
+2026-07-29 10:07:01,250 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/agent-harnesses "HTTP/1.1 200 OK"
+2026-07-29 10:07:01,566 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/datasets/Estwld/atomic2020-comet-origin/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:07:01,566 | WARNING | huggingface_hub.utils._http | Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-07-29 10:07:01,793 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/Estwld/atomic2020-comet-origin/c98e0f9b2c86f6378ed7882faca6f6252736d42e/README.md "HTTP/1.1 200 OK"
+2026-07-29 10:07:02,035 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/datasets/Estwld/atomic2020-comet-origin/resolve/c98e0f9b2c86f6378ed7882faca6f6252736d42e/atomic2020-comet-origin.py "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:02,774 | INFO | httpx | HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/Estwld/atomic2020-comet-origin/Estwld/atomic2020-comet-origin.py "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:03,052 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/datasets/Estwld/atomic2020-comet-origin/revision/c98e0f9b2c86f6378ed7882faca6f6252736d42e "HTTP/1.1 200 OK"
+2026-07-29 10:07:03,292 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/datasets/Estwld/atomic2020-comet-origin/resolve/c98e0f9b2c86f6378ed7882faca6f6252736d42e/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:03,977 | INFO | httpx | HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=Estwld/atomic2020-comet-origin "HTTP/1.1 200 OK"
+2026-07-29 10:07:04,257 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/datasets/Estwld/atomic2020-comet-origin/tree/c98e0f9b2c86f6378ed7882faca6f6252736d42e/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-07-29 10:07:04,515 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/datasets/Estwld/atomic2020-comet-origin/tree/c98e0f9b2c86f6378ed7882faca6f6252736d42e?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-07-29 10:07:04,758 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/datasets/Estwld/atomic2020-comet-origin/resolve/c98e0f9b2c86f6378ed7882faca6f6252736d42e/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:30,738 | WARNING | maskability_index.experiments.runner | Missing configured relations with no loaded examples: ['FilledBy']
+2026-07-29 10:07:30,781 | INFO | maskability_index.experiments.runner | Evaluating 75 heads and 138 reference tails for relation AtLocation
+2026-07-29 10:07:30,781 | INFO | maskability_index.experiments.runner | Evaluating 23 heads and 38 reference tails for relation CapableOf
+2026-07-29 10:07:30,781 | INFO | maskability_index.experiments.runner | Evaluating 41 heads and 61 reference tails for relation HasProperty
+2026-07-29 10:07:30,782 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 261 reference tails for relation ObjectUse
+2026-07-29 10:07:30,782 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 299 reference tails for relation xAttr
+2026-07-29 10:07:30,782 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 223 reference tails for relation xIntent
+2026-07-29 10:07:30,782 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 276 reference tails for relation xNeed
+2026-07-29 10:07:30,783 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 290 reference tails for relation xWant
+2026-07-29 10:07:36,559 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:07:36,675 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:07:36,795 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:07:37,027 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:37,249 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:37,470 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:37,687 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-07-29 10:07:37,910 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/spiece.model "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:07:38,026 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/spiece.model "HTTP/1.1 200 OK"
+2026-07-29 10:07:38,148 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/spiece.model "HTTP/1.1 200 OK"
+2026-07-29 10:07:39,376 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:07:39,493 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/tokenizer.json "HTTP/1.1 200 OK"
+2026-07-29 10:07:39,610 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/tokenizer.json "HTTP/1.1 200 OK"
+2026-07-29 10:07:40,486 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/added_tokens.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:40,708 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/special_tokens_map.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:40,927 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/chat_template.jinja "HTTP/1.1 404 Not Found"
+2026-07-29 10:07:41,347 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:07:41,461 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:07:41,787 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+2026-07-29 10:13:27,368 | WARNING | maskability_index.experiments.runner | Missing configured relations with no loaded examples: ['AtLocation', 'ObjectUse', 'xAttr', 'CapableOf', 'HasProperty', 'FilledBy', 'xIntent', 'xNeed', 'xWant']
+2026-07-29 10:24:08,769 | WARNING | maskability_index.experiments.runner | Missing configured relations with no loaded examples: ['FilledBy']
+2026-07-29 10:24:08,780 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 209 reference tails for relation AtLocation
+2026-07-29 10:24:08,780 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 132 reference tails for relation CapableOf
+2026-07-29 10:24:08,780 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 142 reference tails for relation HasProperty
+2026-07-29 10:24:08,780 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 132 reference tails for relation ObjectUse
+2026-07-29 10:24:08,781 | INFO | maskability_index.experiments.runner | Evaluating 94 heads and 281 reference tails for relation xAttr
+2026-07-29 10:24:08,781 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 233 reference tails for relation xIntent
+2026-07-29 10:24:08,781 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 265 reference tails for relation xNeed
+2026-07-29 10:24:08,781 | INFO | maskability_index.experiments.runner | Evaluating 92 heads and 270 reference tails for relation xWant
+2026-07-29 10:24:09,428 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:24:09,429 | WARNING | huggingface_hub.utils._http | Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-07-29 10:24:09,539 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:24:09,759 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:24:09,979 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:24:10,193 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-07-29 10:24:10,418 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-07-29 10:24:10,629 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/spiece.model "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:24:10,740 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/spiece.model "HTTP/1.1 200 OK"
+2026-07-29 10:24:11,135 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:24:11,296 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:24:11,613 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/model.safetensors "HTTP/1.1 302 Found"
+2026-07-29 10:29:48,790 | WARNING | maskability_index.experiments.runner | Missing configured relations with no loaded examples: ['FilledBy']
+2026-07-29 10:29:48,881 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 209 reference tails for relation AtLocation
+2026-07-29 10:29:48,882 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 132 reference tails for relation CapableOf
+2026-07-29 10:29:48,883 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 142 reference tails for relation HasProperty
+2026-07-29 10:29:48,884 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 132 reference tails for relation ObjectUse
+2026-07-29 10:29:48,885 | INFO | maskability_index.experiments.runner | Evaluating 94 heads and 281 reference tails for relation xAttr
+2026-07-29 10:29:48,886 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 233 reference tails for relation xIntent
+2026-07-29 10:29:48,887 | INFO | maskability_index.experiments.runner | Evaluating 100 heads and 265 reference tails for relation xNeed
+2026-07-29 10:29:48,887 | INFO | maskability_index.experiments.runner | Evaluating 92 heads and 270 reference tails for relation xWant
+2026-07-29 10:30:18,932 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:30:18,933 | WARNING | huggingface_hub.utils._http | Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-07-29 10:30:19,058 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:30:19,295 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:30:20,017 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/tokenizer_config.json "HTTP/1.1 404 Not Found"
+2026-07-29 10:30:20,247 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-07-29 10:30:20,509 | INFO | httpx | HTTP Request: GET https://huggingface.co/api/models/google-t5/t5-base/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-07-29 10:30:20,740 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/spiece.model "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:30:20,864 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/spiece.model "HTTP/1.1 200 OK"
+2026-07-29 10:30:21,269 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-07-29 10:30:21,917 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/google-t5/t5-base/a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1/config.json "HTTP/1.1 200 OK"
+2026-07-29 10:30:22,237 | INFO | httpx | HTTP Request: HEAD https://huggingface.co/google-t5/t5-base/resolve/main/model.safetensors "HTTP/1.1 302 Found"

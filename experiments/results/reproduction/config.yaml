@@ -1,0 +1,108 @@
+experiment:
+  name: reproduction
+  id: E01
+  seed: 13
+  output_dir: results/reproduction
+  relations:
+    mode: selected
+    selected:
+    - AtLocation
+    - ObjectUse
+    - xAttr
+    - CapableOf
+    - HasProperty
+    - FilledBy
+    - xIntent
+    - xNeed
+    - xWant
+  dataset:
+    backend: auto
+    name: atomic2020
+    hf_path: Estwld/atomic2020-comet-origin
+    cache_dir: data/cache
+    local_path: data/atomic2020_500
+    split: train
+  few_shot:
+    enabled: true
+    n_samples: 5
+    strategy: deterministic
+    seed: 13
+  evaluation:
+    depthrank:
+      heads_per_relation: 100
+      max_reference_tails: 3
+      strategy: deterministic
+      seed: 13
+  model:
+    name: google-t5/t5-base
+    tokenizer_name: google-t5/t5-base
+    revision: main
+  prompting:
+    style: both
+    n_shot: 5
+    template_set: canonical
+    demonstrations:
+      enabled: false
+      num_examples: 0
+      strategy: deterministic
+      seed: 13
+  training:
+    enabled: false
+    epochs: 3
+    batch_size: 8
+    learning_rate: 0.0001
+    mixed_precision: false
+    output_dir: results/reproduction/checkpoint
+  depthrank:
+    enabled: true
+    backend: teacher_forced_model
+  sweep:
+    enabled: false
+    dimensions: []
+  analysis:
+    threshold: 0.3
+    bootstrap_iterations: 100
+    permutation_iterations: 100
+    thresholds:
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    instances_per_relation:
+    - 5
+    - 10
+    - 20
+    - 50
+    - 100
+    - 200
+    n_shots:
+    - 1
+    - 3
+    - 5
+    - 10
+    - 20
+    models:
+    - google-t5/t5-small
+    - google-t5/t5-base
+    - google-t5/t5-large
+    baselines:
+    - random
+    - frequency
+    - entropy
+    - confidence
+    prompt_variants:
+    - canonical
+    - alternative
+  tracking:
+    backend: local
+    mlflow_tracking_uri: file:/home/ahmad/mask/results/mlruns
+    experiment_name: reproduction
+  outputs:
+    create_subdirs:
+    - logs
+    - checkpoint
+    - plots
+    - latex
+project:
+  name: maskability-index
+  root: /home/ahmad/mask

@@ -219,10 +219,22 @@ def load_atomic2020_dataset(
         raise ValueError("backend must be one of 'auto', 'csv', 'arrow', 'local', or 'hf'.")
 
     hf_path = hf_path or ATOMIC2020_HF_PATH
-    candidate = Path(local_path) if local_path is not None else DEFAULT_LOCAL_ATOMIC2020_PATH
+
+    if local_path is None:
+        candidate = DEFAULT_LOCAL_ATOMIC2020_PATH
+    else:
+        candidate = Path(local_path).expanduser()
+
+        # If relative (e.g. data/atomic2020_500), make it project-root relative
+        if not candidate.is_absolute():
+            candidate = PROJECT_ROOT / candidate
+
+        # Optional: normalize absolute paths that are outside project root
+        # leave them unchanged
 
     # Arrow/HF save_to_disk format
     print("Loading dataset...")
+    dataset = None
     if not candidate.exists():
         print(f"WARNING: {candidate} doesn't exist")
     else:
@@ -230,40 +242,44 @@ def load_atomic2020_dataset(
 
     if backend in {"arrow", "local"}:
         if (candidate / Path(split) / "dataset_info.json").exists():
-            return _load_arrow_atomic2020_dataset(candidate, split)
+            dataset = _load_arrow_atomic2020_dataset(candidate, split)
         raise FileNotFoundError(f"Local ATOMIC2020 arrow path does not exist: {candidate}")
 
     # prefer local CSV files if backend explicitly csv/local
-    if backend in {"csv", "arrow", "local"}:
+    elif backend in {"csv", "arrow", "local"}:
         if candidate.exists():
-            return _load_atomic_csv_dataset(candidate)
+            dataset = _load_atomic_csv_dataset(candidate)
         raise FileNotFoundError(f"Local ATOMIC2020 CSV path does not exist: {candidate}")
 
     # backend == 'hf' -> direct HF load
-    if backend == "hf":
-        return _load_hf_atomic2020_dataset(hf_path, cache_dir=cache_dir)
+    elif backend == "hf":
+        dataset = _load_hf_atomic2020_dataset(hf_path, cache_dir=cache_dir)
 
     # backend == 'auto'
-    if backend == "auto":
+    elif backend == "auto":
         # 1. try Arrow dataset
         if candidate.exists() and (candidate / Path(split) / "dataset_info.json").exists():
-            return _load_arrow_atomic2020_dataset(candidate, split)
+            dataset = _load_arrow_atomic2020_dataset(candidate, split)
 
         # 2. try CSV
-        if candidate.exists():
-            return _load_atomic_csv_dataset(candidate)
+        elif candidate.exists():
+            dataset = _load_atomic_csv_dataset(candidate)
 
         # 3. download from HF
-        try:
-            ds = hf_download_and_cache(hf_path, candidate, cache_dir=cache_dir)
-            # ds is a DatasetDict (HF). Convert to list-of-dicts for compatibility
-            return {split: [dict(row) for row in ds[split]] for split in ds.keys()}
-        except Exception as exc:
-            # If HF attempt fails, present the same helpful message as before
-            raise RuntimeError(
-                "Could not load ATOMIC2020. Attempted local CSV then HuggingFace download, "
-                f"but both failed. Last error: {exc}"
-            ) from exc
+        else:
+            try:
+                ds = hf_download_and_cache(hf_path, candidate, cache_dir=cache_dir)
+                # ds is a DatasetDict (HF). Convert to list-of-dicts for compatibility
+                dataset = {split: [dict(row) for row in ds[split]] for split in ds.keys()}
+            except Exception as exc:
+                # If HF attempt fails, present the same helpful message as before
+                raise RuntimeError(
+                    "Could not load ATOMIC2020. Attempted local CSV then HuggingFace download, "
+                    f"but both failed. Last error: {exc}"
+                ) from exc
+    print(dataset.keys())
+    print(dataset[split][0])
+    return dataset
 
 def load_atomic2020_instances(
     split: str = "train",

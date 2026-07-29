@@ -1,0 +1,48 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "atomic2020-comet-origin",
+  "dataset_size": 79921989,
+  "description": "",
+  "download_size": 21711502,
+  "features": {
+    "input": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "output": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 101633491,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 64203147,
+      "num_examples": 1008254,
+      "dataset_name": "atomic2020-comet-origin"
+    },
+    "validation": {
+      "name": "validation",
+      "num_bytes": 6314227,
+      "num_examples": 94614,
+      "dataset_name": "atomic2020-comet-origin"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 9404615,
+      "num_examples": 143736,
+      "dataset_name": "atomic2020-comet-origin"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

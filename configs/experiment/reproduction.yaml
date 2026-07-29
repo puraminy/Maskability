@@ -22,7 +22,7 @@ dataset:
   hf_path: Estwld/atomic2020-comet-origin
   cache_dir: data/cache
   local_path: data/atomic2020_500
-  split: validation
+  split: train
 
 few_shot:
   enabled: true
