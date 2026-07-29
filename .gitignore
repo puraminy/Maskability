@@ -16,6 +16,9 @@ data/atomic/
 data/atomic2020/
 data/atomic2020_tuples/
 data/cache/
+**/.cache/
+**/cache/
+**/__pycache__/
 
 # Ignore all generated atomic2020_* datasets
 data/atomic2020_*
