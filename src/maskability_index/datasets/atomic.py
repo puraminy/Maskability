@@ -465,7 +465,13 @@ def _load_hf_atomic2020_dataset(hf_path: str, cache_dir: str | None = None) -> T
     except ImportError as exc:
         raise ImportError("Install the `datasets` package to use the HuggingFace ATOMIC backend.") from exc
 
-    dataset = load_dataset(hf_path, cache_dir=cache_dir)
+    candidate = Path(cache_dir).expanduser()
+
+    # If relative (e.g. data/atomic2020_500), make it project-root relative
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+
+    dataset = load_dataset(hf_path, cache_dir=candidate)
     if not isinstance(dataset, dict):  # DatasetDict under the hood behaves like dict
         raise TypeError(f"Expected DatasetDict for {hf_path!r}, got {type(dataset).__name__}.")
     # convert to mapping of split->list[dict]
