@@ -613,7 +613,8 @@ class ExperimentRunner:
             LOGGER.info("Running validation...")
             trainer.evaluate()
 
-        trainer.save_checkpoint(output_dir)
+        if training.get("save_checkpoint", False):
+            trainer.save_checkpoint(output_dir)
 
         LOGGER.info("Finished fine-tuning %s", template_family)
 
