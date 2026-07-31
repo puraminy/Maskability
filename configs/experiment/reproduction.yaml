@@ -68,6 +68,7 @@ training:
   beam_size: 1
   seed: ${experiment.seed}
   save_strategy: epoch
+  save_checkpoints: true
   enable_validation: false
   evaluation_strategy: epoch
   eval_instances_per_relation: 10

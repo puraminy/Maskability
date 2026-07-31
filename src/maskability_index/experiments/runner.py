@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import csv
+import itertools
+import json
 import logging
+import subprocess
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -43,13 +46,15 @@ from maskability_index.utils.reproducibility import collect_environment_info, se
 
 OUTPUT_SUBDIRS = ["plots", "latex", "logs", "checkpoint"]
 PLOT_NAMES = [
+    "mi_vs_evaluation_size",
+    "mi_vs_nshot",
+    "dr_comparison",
+    "model_comparison_mi",
+    "model_comparison_dr",
+    "model_comparison_runtime",
+    "runtime_comparison",
     "scatter",
-    "histogram",
-    "correlation",
-    "threshold",
-    "sensitivity",
-    "model_comparison",
-    "baseline_comparison",
+    "heatmap",
 ]
 LOGGER = logging.getLogger(__name__)
 
@@ -74,58 +79,49 @@ class ExperimentRunner:
 
     def run(self) -> Path:
         """Execute dataset, prompting, inference, DepthRank, MI, stats, plots, and tables."""
-        if self.cfg.experiment.get("sweep", {}).get("enabled", False):
+        if self._sweep_combinations():
             return self.run_sweeps()
-        return self._run_single(self.cfg, self.output_dir)
+        return self._run_single(self.cfg, self.output_dir, experiment_id=str(self.cfg.experiment.id))
 
     def run_sweeps(self) -> Path:
-        """Execute configured sweep dimensions and write aggregate summaries."""
-        ensure_output_tree(
-            self.output_dir, ["sensitivity", "thresholds", "models", "prompts", "latex"]
-        )
+        """Execute Cartesian-product sweeps and write aggregate results/plots."""
+        ensure_output_tree(self.output_dir, ["plots", "latex", "logs"])
+        configure_logging(self.output_dir / "logs" / "log.txt")
         write_config(self.output_dir / "config.yaml", self.cfg)
-        sweep_rows: list[dict[str, Any]] = []
-        for dimension, values, subdir in self._sweep_dimensions():
-            for value in values:
-                child_cfg = OmegaConf.create(OmegaConf.to_container(self.cfg, resolve=True))
-                label = self._sweep_label(dimension, value)
+        combinations = self._sweep_combinations()
+        all_rows: list[dict[str, Any]] = []
+        total_start = time.time()
+        for run_index, values in enumerate(combinations, start=1):
+            child_cfg = OmegaConf.create(OmegaConf.to_container(self.cfg, resolve=True))
+            labels = []
+            for dimension, value in values.items():
                 self._apply_sweep_value(child_cfg, dimension, value)
-                child_cfg.experiment.sweep.enabled = False
-                child_cfg.experiment.output_dir = str(self.output_dir / subdir / label)
-                out = ExperimentRunner(child_cfg, child_cfg.experiment.output_dir).run()
-                mi_df = pd.read_csv(out / "mi_scores.csv")
-                ci = bootstrap_ci(
-                    mi_df["maskability_index"].tolist(),
-                    seed=int(child_cfg.experiment.seed),
-                    iterations=int(child_cfg.experiment.analysis.bootstrap_iterations),
-                )
-                sweep_rows.append(
-                    {
-                        "sweep": dimension,
-                        "value": value,
-                        "run_dir": str(out),
-                        "relations": int(len(mi_df)),
-                        "mean_MI": float(mi_df["maskability_index"].mean()),
-                        "std_MI": float(mi_df["maskability_index"].std(ddof=0)),
-                        "bootstrap_CI_lower": ci["lower"],
-                        "bootstrap_CI_upper": ci["upper"],
-                    }
-                )
-        summary = pd.DataFrame(sweep_rows)
-        summary.to_csv(self.output_dir / "sweep_summary.csv", index=False)
-        (self.output_dir / "latex" / "sweep_summary.tex").write_text(
-            summary.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
-        )
-        for dimension in sorted(summary["sweep"].unique()) if not summary.empty else []:
-            dim_df = summary[summary["sweep"] == dimension]
-            name = self._summary_name(dimension)
-            dim_df.to_csv(self.output_dir / f"{name}.csv", index=False)
-            (self.output_dir / "latex" / f"{name}.tex").write_text(
-                dim_df.to_latex(index=False, float_format="%.3f"), encoding="utf-8"
-            )
+                labels.append(self._sweep_label(dimension, value))
+            child_cfg.experiment.sweep.enabled = False
+            child_cfg.experiment.sweep.disable_auto = True
+            experiment_id = f"{child_cfg.experiment.id}_run_{run_index:03d}"
+            child_cfg.experiment.id = experiment_id
+            child_dir = self.output_dir / experiment_id
+            child_cfg.experiment.output_dir = str(child_dir)
+            LOGGER.info("Experiment %s / %s", run_index, len(combinations))
+            LOGGER.info("Model: %s", child_cfg.experiment.model.name)
+            LOGGER.info("n-shot: %s", child_cfg.experiment.few_shot.n_samples)
+            LOGGER.info("Evaluation: %s heads", child_cfg.experiment.evaluation.depthrank.heads_per_relation)
+            out = ExperimentRunner(child_cfg, child_dir).run()
+            mi_df = pd.read_csv(out / "mi_scores.csv")
+            metadata = self._read_json(out / "experiment.json")
+            for row in mi_df.to_dict("records"):
+                row["experiment_id"] = experiment_id
+                row["prompt_variant"] = child_cfg.experiment.prompting.get("template_set", "canonical")
+                row["runtime"] = metadata.get("runtime", metadata.get("runtime_seconds", ""))
+                all_rows.append(row)
+        all_df = pd.DataFrame(all_rows)
+        all_df.to_csv(self.output_dir / "all_results.csv", index=False)
+        generate_plots(all_df, self.output_dir / "plots")
+        self._print_reproduction_summary(all_df, time.time() - total_start, self.output_dir)
         return self.output_dir
 
-    def _run_single(self, cfg: DictConfig, output_dir: Path) -> Path:
+    def _run_single(self, cfg: DictConfig, output_dir: Path, experiment_id: str | None = None) -> Path:
         """Execute one resolved experiment configuration."""
         start = time.time()
         ensure_output_tree(output_dir, OUTPUT_SUBDIRS)
@@ -133,6 +129,10 @@ class ExperimentRunner:
         set_seed(int(cfg.experiment.seed))
         write_config(output_dir / "config.yaml", cfg)
         device = self._device()
+        LOGGER.info("Experiment %s", experiment_id or cfg.experiment.id)
+        LOGGER.info("Model: %s", cfg.experiment.model.name)
+        LOGGER.info("n-shot: %s", self._few_shot_size())
+        LOGGER.info("Evaluation: %s heads", cfg.experiment.evaluation.depthrank.get("heads_per_relation", "all"))
         LOGGER.info("[Phase 1/6] Loading dataset...")
         train_instances, eval_instances = self._load_phase1_splits()
         LOGGER.info(
@@ -157,13 +157,19 @@ class ExperimentRunner:
         LOGGER.info("[Phase 6/6] Writing outputs...")
         self._write_csv(output_dir / "depthrank.csv", depthrank)
         mi_df = pd.DataFrame(mi_scores)
+        mi_df["prompt_variant"] = str(cfg.experiment.prompting.get("template_set", "canonical"))
+        mi_df["runtime"] = float(metrics["runtime_seconds"])
         mi_df.attrs["threshold"] = float(cfg.experiment.analysis.threshold)
         mi_df.to_csv(output_dir / "mi_scores.csv", index=False)
         write_json(output_dir / "metrics.json", metrics)
+        metadata = self._experiment_metadata(cfg, mi_scores, metrics, start)
+        write_json(output_dir / "experiment.json", metadata)
+        self._append_all_results(output_dir / "all_results.csv", mi_scores, metadata)
         self._write_summary_tables(mi_df, output_dir)
-        generate_plots(mi_df, output_dir / "plots")
+        generated_plots = generate_plots(mi_df, output_dir / "plots")
         self._write_latex(mi_df)
         update_results_index(output_dir, Path("results") / "index.json")
+        self._print_reproduction_summary(mi_df, metrics["runtime_seconds"], output_dir, generated_plots)
         checkpoint_readme = output_dir / "checkpoint" / "README.txt"
         if not checkpoint_readme.exists():
             checkpoint_readme.write_text(
@@ -365,12 +371,13 @@ class ExperimentRunner:
                 )
         return sampled
 
-    def _create_model_bundle(self):
+    def _create_model_bundle(self, *, copy_model: bool = True):
         model_cfg = self.cfg.experiment.model
         return create_seq2seq_model(
             str(model_cfg.name),
             revision=str(model_cfg.get("revision", "main")),
             tokenizer_name=model_cfg.get("tokenizer_name", None),
+            copy_model=copy_model,
         )
 
     def _create_depthrank_calculator(self, model: Any, tokenizer: Any, device: str):
@@ -449,10 +456,9 @@ class ExperimentRunner:
                 len(instances),
             )
             for index, instance in enumerate(instances, start=1):
-                if index == 1 or index % 100 == 0 or index == len(instances):
-                    LOGGER.info(
-                        "DepthRank progress %s: %s/%s", template_family, index, len(instances)
-                    )
+                if index == 1 or index % 10 == 0 or index == len(instances):
+                    current = sum(float(r["depthrank"]) for r in rows if r["template_family"] == template_family) / max(1, sum(1 for r in rows if r["template_family"] == template_family))
+                    LOGGER.info("DepthRank:\nRelation %s\nHead %s/%s\nTail %s/%s\nCurrent average rank %.4f", instance.relation, len({r["head"] for r in rows if r["template_family"] == template_family and r["relation"] == instance.relation}) + 1, len({i.head for i in instances if i.relation == instance.relation}), 1, "<=%s" % self.cfg.experiment.evaluation.depthrank.get("max_reference_tails", "all"), current)
                 prompt = builder.build(instance)
                 result = calculator.compute(prompt, instance.tail)
                 rows.append(self._depthrank_row(instance, template_family, result))
@@ -464,7 +470,7 @@ class ExperimentRunner:
         """Follow the manuscript order: fine-tune each template family, then evaluate DR."""
         rows: list[dict[str, Any]] = []
         if not bool(self.cfg.experiment.training.get("enabled", False)):
-            bundle = self._create_model_bundle()
+            bundle = self._create_model_bundle(copy_model=False)
             self._family_bundles = {family: bundle for family in self._template_builders()}
             calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
             return self._compute_depthrank(eval_instances, calculator)
@@ -487,13 +493,12 @@ class ExperimentRunner:
                 len(eval_instances),
             )
             for index, instance in enumerate(eval_instances, start=1):
-                if index == 1 or index % 100 == 0 or index == len(eval_instances):
-                    LOGGER.info(
-                        "DepthRank progress %s: %s/%s",
-                        template_family,
-                        index,
-                        len(eval_instances),
-                    )
+                if index == 1 or index % 10 == 0 or index == len(eval_instances):
+                    rel_total = len({i.head for i in eval_instances if i.relation == instance.relation})
+                    rel_done = len({r["head"] for r in rows if r["template_family"] == template_family and r["relation"] == instance.relation}) + 1
+                    current_rows = [r for r in rows if r["template_family"] == template_family]
+                    current = sum(float(r["depthrank"]) for r in current_rows) / max(1, len(current_rows))
+                    LOGGER.info("DepthRank:\nRelation %s\nHead %s/%s\nTail %s/%s\nCurrent average rank %.4f", instance.relation, rel_done, rel_total, 1, "<=%s" % self.cfg.experiment.evaluation.depthrank.get("max_reference_tails", "all"), current)
                 prompt = builder.build(instance)
                 result = calculator.compute(prompt, instance.tail)
                 rows.append(self._depthrank_row(instance, template_family, result))
@@ -590,7 +595,7 @@ class ExperimentRunner:
                 seed=int(training.get("seed", self.cfg.experiment.seed)),
                 mixed_precision=bool(training.get("mixed_precision", False)),
                 logging_steps=int(training.get("logging_steps", 50)),
-                save_strategy=str(training.get("save_strategy", "epoch")),
+                save_strategy=(str(training.get("save_strategy", "epoch")) if bool(training.get("save_checkpoints", training.get("save_checkpoint", True))) else "no"),
                 evaluation_strategy=(
                     str(training.get("evaluation_strategy", "epoch"))
                     if enable_validation
@@ -613,7 +618,7 @@ class ExperimentRunner:
             LOGGER.info("Running validation...")
             trainer.evaluate()
 
-        if training.get("save_checkpoint", False):
+        if training.get("save_checkpoints", training.get("save_checkpoint", False)):
             trainer.save_checkpoint(output_dir)
 
         LOGGER.info("Finished fine-tuning %s", template_family)
@@ -807,8 +812,9 @@ class ExperimentRunner:
             cfg.experiment.model.tokenizer_name = str(value)
         elif dimension == "prompt_variant":
             cfg.experiment.prompting.template_set = str(value)
-        elif dimension == "demonstrations":
-            cfg.experiment.prompting.demonstrations.enabled = int(value) > 0
+        elif dimension in {"demonstrations", "n_shot"}:
+            cfg.experiment.few_shot.n_samples = int(value)
+            cfg.experiment.prompting.n_shot = int(value)
             cfg.experiment.prompting.demonstrations.num_examples = int(value)
 
     @staticmethod
@@ -825,7 +831,124 @@ class ExperimentRunner:
             "model": "model_summary",
             "prompt_variant": "prompt_summary",
             "demonstrations": "demonstration_summary",
+            "n_shot": "nshot_summary",
         }[dimension]
+
+    def _sweep_combinations(self) -> list[dict[str, Any]]:
+        """Return Cartesian-product sweep settings inferred from list-valued analysis fields."""
+        if bool(self.cfg.experiment.get("sweep", {}).get("disable_auto", False)):
+            return []
+        analysis = self.cfg.experiment.analysis
+        enabled = bool(self.cfg.experiment.get("sweep", {}).get("enabled", False))
+        configured = list(self.cfg.experiment.get("sweep", {}).get("dimensions", []))
+        candidates = {
+            "instances_per_relation": list(analysis.get("instances_per_relation", [])),
+            "n_shot": list(analysis.get("n_shots", [])),
+            "model": list(analysis.get("models", [])),
+            "prompt_variant": list(analysis.get("prompt_variants", [])),
+        }
+        dimensions = [d for d in configured if d in candidates] if enabled and configured else []
+        if not dimensions:
+            dimensions = [d for d, values in candidates.items() if len(values) > 1]
+        if not dimensions:
+            return []
+        products = itertools.product(*(candidates[d] for d in dimensions))
+        return [dict(zip(dimensions, values, strict=True)) for values in products]
+
+    def _experiment_metadata(
+        self, cfg: DictConfig, mi_scores: list[dict[str, Any]], metrics: dict[str, Any], start: float
+    ) -> dict[str, Any]:
+        """Build per-run metadata for experiment.json."""
+        env = metrics.get("environment", {})
+        return {
+            "model": str(cfg.experiment.model.name),
+            "seed": int(cfg.experiment.seed),
+            "n_shot": self._few_shot_size(),
+            "evaluation_size": int(cfg.experiment.evaluation.depthrank.get("heads_per_relation", 0)),
+            "prompt_variant": str(cfg.experiment.prompting.get("template_set", "canonical")),
+            "template_family": str(cfg.experiment.prompting.get("style", "both")),
+            "runtime": float(metrics.get("runtime_seconds", time.time() - start)),
+            "runtime_seconds": float(metrics.get("runtime_seconds", time.time() - start)),
+            "gpu": self._gpu_info(),
+            "dataset_version": str(cfg.experiment.dataset.get("name", "atomic2020")),
+            "git_commit": self._git_commit(),
+            "relations": [row["relation"] for row in mi_scores],
+            "environment": env,
+        }
+
+    def _append_all_results(
+        self, path: Path, mi_scores: list[dict[str, Any]], metadata: dict[str, Any]
+    ) -> None:
+        """Write the comparison CSV schema for a single run."""
+        rows = []
+        for row in mi_scores:
+            rows.append(
+                {
+                    "model": row["model"],
+                    "seed": row["seed"],
+                    "relation": row["relation"],
+                    "evaluation_size": row["evaluation_size"],
+                    "few_shot_size": row["few_shot_size"],
+                    "prompt_variant": metadata["prompt_variant"],
+                    "dr_prompting": row["dr_prompting"],
+                    "dr_masked_prompting": row["dr_masked_prompting"],
+                    "maskability_index": row["maskability_index"],
+                    "group": row.get("group", ""),
+                    "runtime": metadata["runtime"],
+                }
+            )
+        pd.DataFrame(rows).to_csv(path, index=False)
+
+    @staticmethod
+    def _read_json(path: Path) -> dict[str, Any]:
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _git_commit() -> str:
+        try:
+            return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        except Exception:
+            return "unknown"
+
+    @staticmethod
+    def _gpu_info() -> dict[str, Any]:
+        try:
+            import torch
+        except ImportError:
+            return {"cuda": False}
+        if not torch.cuda.is_available():
+            return {"cuda": False}
+        return {
+            "cuda": True,
+            "name": torch.cuda.get_device_name(0),
+            "memory_allocated": int(torch.cuda.memory_allocated(0)),
+            "memory_reserved": int(torch.cuda.memory_reserved(0)),
+        }
+
+    def _print_reproduction_summary(
+        self,
+        df: pd.DataFrame,
+        runtime: float,
+        output_dir: Path,
+        plots: list[Path] | None = None,
+    ) -> None:
+        """Log the final reproduction summary table requested by the runner."""
+        if df.empty:
+            return
+        LOGGER.info("===========================")
+        LOGGER.info("REPRODUCTION SUMMARY")
+        LOGGER.info("===========================")
+        LOGGER.info("Total experiments: %s", df.get("experiment_id", pd.Series([1])).nunique())
+        LOGGER.info("Runtime: %.2fs", runtime)
+        LOGGER.info("Average MI: %.4f", float(df["maskability_index"].mean()))
+        LOGGER.info("Per relation:\n%s", df.groupby("relation")["maskability_index"].mean().to_string())
+        if "model" in df:
+            LOGGER.info("Best model: %s", df.groupby("model")["maskability_index"].mean().idxmax())
+        if "few_shot_size" in df:
+            LOGGER.info("Best n-shot: %s", df.groupby("few_shot_size")["maskability_index"].mean().idxmax())
+        LOGGER.info("Output directory: %s", output_dir)
+        LOGGER.info("Generated plots: %s", sorted(str(p) for p in (plots or (output_dir / "plots").glob("*.*"))))
+        LOGGER.info("Generated CSVs: %s", sorted(str(p) for p in output_dir.glob("*.csv")))
 
     def _write_latex(self, mi_df: pd.DataFrame) -> None:
         latex = self.output_dir / "latex"
