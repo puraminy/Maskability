@@ -53,7 +53,7 @@ prompting:
     seed: ${experiment.seed}
 
 training:
-  enabled: false
+  enabled: true
   epochs: 3
   batch_size: 8
   learning_rate: 0.0001
@@ -85,4 +85,6 @@ tracking:
   experiment_name: ${experiment.name}
 
 outputs:
+  generate_predictions: false
   create_subdirs: [logs, checkpoint, plots, latex]
+

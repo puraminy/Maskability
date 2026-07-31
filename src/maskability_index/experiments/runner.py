@@ -60,6 +60,8 @@ class ExperimentRunner:
         name = str(cfg.experiment.name)
         root = Path(output_dir or cfg.experiment.get("output_dir", Path("results") / name))
         self.output_dir = root
+        self._dataset_cache = None
+        self._demo_cache = None
 
     def run(self) -> Path:
         """Execute dataset, prompting, inference, DepthRank, MI, stats, plots, and tables."""
@@ -129,10 +131,17 @@ class ExperimentRunner:
             bundle.model, bundle.tokenizer, device
         )
         depthrank = self._compute_depthrank(instances, depthrank_calculator)
-        predictions = self._build_predictions(depthrank, bundle.model, bundle.tokenizer, device)
+        if cfg.experiment.outputs.get("generate_predictions", False):
+            predictions = self._build_predictions(
+                depthrank,
+                bundle.model,
+                bundle.tokenizer,
+                device,
+            )
+            self._write_csv(output_dir / "predictions.csv", predictions)
+
         mi_scores = self._compute_mi(depthrank)
         metrics = self._compute_statistics(mi_scores, start)
-        self._write_csv(output_dir / "predictions.csv", predictions)
         self._write_csv(output_dir / "depthrank.csv", depthrank)
         mi_df = pd.DataFrame(mi_scores)
         mi_df.attrs["threshold"] = float(cfg.experiment.analysis.threshold)
@@ -149,6 +158,8 @@ class ExperimentRunner:
         return output_dir
 
     def _load_dataset(self) -> list[RelationInstance]:
+        if self._dataset_cache is not None:
+            return self._dataset_cache
         dataset_cfg = self.cfg.experiment.dataset
         if dataset_cfg.get("backend", "auto") in {"atomic2020", "auto", "local", "hf", "csv"}:
             configured_backend = dataset_cfg.get("backend", "auto")
@@ -162,7 +173,9 @@ class ExperimentRunner:
             )
             filtered = self._filter_relations(instances)
             self._report_missing_relations(instances, filtered)
-            return self._sample_evaluation(filtered)
+            sampled = self._sample_evaluation(filtered)
+            self._dataset_cache = sampled
+            return sampled
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
 
     def _filter_relations(self, instances: list[RelationInstance]) -> list[RelationInstance]:
@@ -281,32 +294,24 @@ class ExperimentRunner:
             builders[family] = builder
         return builders
 
-    def _demonstrations(self) -> list[RelationInstance]:
-        demo_cfg = self.cfg.experiment.get(
-            "few_shot", self.cfg.experiment.prompting.get("demonstrations", {})
-        )
-        if not demo_cfg.get("enabled", False):
+    def _demonstrations(self):
+        if self._demo_cache is not None:
+            return self._demo_cache
+
+        if not self.cfg.experiment.few_shot.enabled:
             return []
-        n = self._few_shot_size()
-        if n < 1:
-            return []
-        instances = self._filter_relations(
-            load_atomic2020_instances(
-                self.cfg.experiment.dataset.get("split", "validation"),
-                self.cfg.experiment.dataset.cache_dir,
-                self.cfg.experiment.dataset.hf_path,
-                local_path=self.cfg.experiment.dataset.get("local_path", None),
-                backend="auto"
-                if self.cfg.experiment.dataset.get("backend", "auto") == "atomic2020"
-                else self.cfg.experiment.dataset.get("backend", "auto"),
-            )
-        )
-        return sample_instances_per_relation(
+
+        instances = self._load_dataset()
+
+        demos = sample_instances_per_relation(
             instances,
-            instances_per_relation=n,
-            strategy=str(demo_cfg.get("strategy", "deterministic")),
-            seed=int(demo_cfg.get("seed", self.cfg.experiment.seed)),
-        )[:n]
+            instances_per_relation=self._few_shot_size(),
+            strategy="deterministic",
+            seed=int(self.cfg.experiment.seed),
+        )
+
+        self._demo_cache = demos
+        return demos
 
     def _few_shot_size(self) -> int:
         few_shot = self.cfg.experiment.get("few_shot", {})
