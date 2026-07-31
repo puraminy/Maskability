@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import copy
+import logging
 from dataclasses import dataclass
 
 from transformers import (
@@ -40,16 +42,10 @@ SUPPORTED_SEQ2SEQ_MODELS: dict[str, Seq2SeqModelSpec] = {
     "google-t5/t5-large": Seq2SeqModelSpec(
         AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
     ),
-    "google-t5/t5-small": Seq2SeqModelSpec(
-        AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
-    ),
-    "google-t5/t5-base": Seq2SeqModelSpec(
-        AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
-    ),
-    "google-t5/t5-large": Seq2SeqModelSpec(
-        AutoModelForSeq2SeqLM.from_pretrained, AutoTokenizer.from_pretrained
-    ),
 }
+
+LOGGER = logging.getLogger(__name__)
+_MODEL_CACHE: dict[tuple[str, str, str | None], Seq2SeqModelBundle] = {}
 
 
 class Seq2SeqModelFactory:
@@ -64,23 +60,41 @@ class Seq2SeqModelFactory:
         self._registry[name] = spec
 
     def create(
-        self, name: str, revision: str = "main", tokenizer_name: str | None = None
+        self,
+        name: str,
+        revision: str = "main",
+        tokenizer_name: str | None = None,
+        *,
+        copy_model: bool = True,
     ) -> Seq2SeqModelBundle:
-        """Load a supported model and tokenizer bundle."""
+        """Load a supported model/tokenizer bundle, reusing cached pretrained weights."""
         if name not in self._registry:
             supported = ", ".join(sorted(self._registry))
             raise ValueError(f"Unsupported seq2seq model {name!r}. Supported models: {supported}.")
         spec = self._registry[name]
         resolved_tokenizer = tokenizer_name or spec.tokenizer_name or name
-        tokenizer = spec.tokenizer_loader(resolved_tokenizer, revision=revision)
-        model = spec.model_loader(name, revision=revision)
-        return Seq2SeqModelBundle(model=model, tokenizer=tokenizer)
+        key = (name, revision, resolved_tokenizer)
+        if key not in _MODEL_CACHE:
+            LOGGER.info("Loading %s...", name)
+            tokenizer = spec.tokenizer_loader(resolved_tokenizer, revision=revision)
+            model = spec.model_loader(name, revision=revision)
+            _MODEL_CACHE[key] = Seq2SeqModelBundle(model=model, tokenizer=tokenizer)
+            LOGGER.info("Loaded %s.", name)
+        else:
+            LOGGER.info("Reusing cached pretrained weights for %s.", name)
+        cached = _MODEL_CACHE[key]
+        model = copy.deepcopy(cached.model) if copy_model else cached.model
+        return Seq2SeqModelBundle(model=model, tokenizer=cached.tokenizer)
 
 
 def create_seq2seq_model(
-    name: str, revision: str = "main", tokenizer_name: str | None = None
+    name: str,
+    revision: str = "main",
+    tokenizer_name: str | None = None,
+    *,
+    copy_model: bool = True,
 ) -> Seq2SeqModelBundle:
     """Create a seq2seq model/tokenizer bundle from the default factory."""
     return Seq2SeqModelFactory().create(
-        name=name, revision=revision, tokenizer_name=tokenizer_name
+        name=name, revision=revision, tokenizer_name=tokenizer_name, copy_model=copy_model
     )

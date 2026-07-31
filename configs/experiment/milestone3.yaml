@@ -59,6 +59,7 @@ training:
   overwrite_cache: false
   logging_steps: 50
   save_strategy: epoch
+  save_checkpoints: true
   evaluation_strategy: epoch
   predict_with_generate: true
 
