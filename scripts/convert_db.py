@@ -404,7 +404,7 @@ def main():
                 converted[split_name] = convert_split(
                     split,
                     heldout_relation_counts,
-                    args.heldout_per_relation,
+                    None  # no limit - already capped
                 )
             else:
                 # Validation and test - use a dummy counter

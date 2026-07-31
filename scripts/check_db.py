@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 from collections import Counter
-
+from collections import defaultdict
 from datasets import load_from_disk
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -62,6 +62,15 @@ def main():
         print("-" * 60)
         for relation, count in sorted(split_counts.items(), key=lambda x: x[1], reverse=True):
             print(f"  {relation:25s}: {count:,}")
+            
+    heldout = ds["heldout"]
+    stats = defaultdict(set)
+    for row in heldout:
+        stats[row["relation"]].add(row["head"])
+
+    print("\nUnique heads in heldout")
+    for rel in sorted(stats):
+        print(f"{rel:20} {len(stats[rel])}")
 
     # Show example rows
     print("\n" + "=" * 80)
