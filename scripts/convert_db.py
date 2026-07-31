@@ -3,8 +3,8 @@
 Convert a processed ATOMIC2020 DatasetDict into explicit triples with held-out split.
 
 The dataset is split into:
-- train: training examples (original train minus heldout)
-- heldout: 100 unique heads per relation (for evaluation)
+- train: training examples (original train minus heldout, capped at max_per_relation)
+- heldout: 100 unique heads per relation, capped at heldout-per-relation instances
 - validation: original validation set
 - test: original test set
 
@@ -18,19 +18,18 @@ Output:
 Examples
 --------
 
-Default (500 examples per relation, 100 heldout heads per relation):
+Default (500 examples per relation in train, 100 examples per relation in heldout):
 
     python convert_db.py
 
-Keep at most 1000 examples per relation:
+Keep at most 1000 examples per relation in train:
 
     python convert_db.py --max-per-relation 1000
 
-Custom heldout size and seed:
+Custom heldout size:
 
     python convert_db.py \
-        --heldout-per-relation 50 \
-        --seed 42
+        --heldout-per-relation 50
 
 Specify paths:
 
@@ -110,7 +109,7 @@ PATTERN = re.compile(
 )
 
 
-def create_heldout_split(train_split, heldout_per_relation, seed):
+def create_heldout_split(train_split, heldout_per_relation, seed, max_heldout_instances=None):
     """
     Create heldout split by selecting unique heads per relation.
     
@@ -118,13 +117,19 @@ def create_heldout_split(train_split, heldout_per_relation, seed):
     1. Group examples by head
     2. Shuffle unique heads deterministically
     3. Select first N heads for heldout
-    4. Move ALL triples for those heads to heldout
+    4. Move ALL triples for those heads to heldout (or cap if specified)
     5. Keep remaining heads in train
+    
+    Args:
+        train_split: Training split to split
+        heldout_per_relation: Number of unique heads to holdout per relation
+        seed: Random seed for reproducibility
+        max_heldout_instances: Maximum instances per relation in heldout (default: None = unlimited)
     
     Returns:
         new_train: Dataset without heldout examples
         heldout: Dataset with heldout examples
-        heldout_stats: dict mapping relation -> number of heldout heads
+        heldout_stats: dict mapping relation -> statistics
     """
     
     # Group examples by (relation, head)
@@ -164,20 +169,43 @@ def create_heldout_split(train_split, heldout_per_relation, seed):
         random.shuffle(unique_heads)
         
         # Select heldout heads
-        num_heldout = min(heldout_per_relation, len(unique_heads))
-        heldout_heads = set(unique_heads[:num_heldout])
+        num_heldout_heads = min(heldout_per_relation, len(unique_heads))
+        heldout_heads = set(unique_heads[:num_heldout_heads])
+        
+        # Collect all heldout examples for this relation
+        relation_heldout_examples = []
+        for head in heldout_heads:
+            relation_heldout_examples.extend(head_groups[head])
+        
+        # Cap heldout instances if specified
+        if max_heldout_instances is not None and len(relation_heldout_examples) > max_heldout_instances:
+            # Shuffle the heldout examples (deterministically) and take first N
+            random.shuffle(relation_heldout_examples)
+            relation_heldout_examples = relation_heldout_examples[:max_heldout_instances]
         
         heldout_stats[relation] = {
             "total_heads": len(unique_heads),
-            "heldout_heads": num_heldout,
+            "heldout_heads": num_heldout_heads,
             "total_triples": sum(len(examples) for examples in head_groups.values()),
-            "heldout_triples": sum(len(head_groups[head]) for head in heldout_heads)
+            "heldout_triples": len(relation_heldout_examples)
         }
         
         # Split examples
+        # Remove heldout heads from train
+        heldout_head_set = set(heldout_heads)
         for head, examples in head_groups.items():
-            if head in heldout_heads:
-                heldout_examples.extend(examples)
+            if head in heldout_head_set:
+                # If we capped, we need to select which examples go to heldout
+                # The ones in relation_heldout_examples are the selected ones
+                if max_heldout_instances is not None:
+                    # Only add to heldout if in the selected capped list
+                    for ex in examples:
+                        if ex in relation_heldout_examples:
+                            heldout_examples.append(ex)
+                        else:
+                            train_examples.append(ex)
+                else:
+                    heldout_examples.extend(examples)
             else:
                 train_examples.extend(examples)
     
@@ -286,6 +314,13 @@ def main():
     )
     
     parser.add_argument(
+        "--heldout-max-instances",
+        type=int,
+        default=None,
+        help="Maximum instances per relation in heldout (default: None = unlimited)",
+    )
+    
+    parser.add_argument(
         "--seed",
         type=int,
         default=13,
@@ -302,7 +337,10 @@ def main():
             if args.max_per_relation is None
             else str(args.max_per_relation)
         )
-        output_path = input_path.parent / f"{input_path.name}_{suffix}_heldout{args.heldout_per_relation}"
+        heldout_suffix = f"_heldout{args.heldout_per_relation}"
+        if args.heldout_max_instances is not None:
+            heldout_suffix += f"_cap{args.heldout_max_instances}"
+        output_path = input_path.parent / f"{input_path.name}_{suffix}{heldout_suffix}"
     else:
         output_path = Path(args.output).expanduser()
     
@@ -312,12 +350,15 @@ def main():
     
     # Create heldout split from original train
     print(f"\nCreating heldout split ({args.heldout_per_relation} heads per relation, seed={args.seed})")
+    if args.heldout_max_instances is not None:
+        print(f"  Capping heldout instances to {args.heldout_max_instances} per relation")
     print("-" * 60)
     
     new_train, heldout, heldout_stats = create_heldout_split(
         ds["train"],
         args.heldout_per_relation,
-        args.seed
+        args.seed,
+        args.heldout_max_instances
     )
     
     print("\nHeldout split statistics:")
@@ -357,13 +398,13 @@ def main():
                 args.max_per_relation
             )
         else:
-            # No limit for heldout, validation, test
+            # No limit for heldout, validation, test (heldout was already capped during creation)
             if split_name == "heldout":
                 # Track heldout relation counts for reporting
                 converted[split_name] = convert_split(
                     split,
                     heldout_relation_counts,
-                    None  # no limit
+                    args.heldout_per_relation,
                 )
             else:
                 # Validation and test - use a dummy counter
@@ -391,20 +432,22 @@ def main():
         )
     
     if heldout_relation_counts:
-        print("\nHeldout relations (no limit - all heldout heads included)")
+        print("\nHeldout relations (capped at {} per relation)".format(
+            args.heldout_max_instances if args.heldout_max_instances is not None else "unlimited"
+        ))
         print("-" * 60)
         for relation in sorted(heldout_relation_counts):
             print(
                 f"{relation:<{width}} : {heldout_relation_counts[relation]:>5}"
             )
     
-    # Also show heldout sizes
+    # Also show heldout head statistics
     print("\nHeldout head statistics")
     print("-" * 60)
     for relation, stats in sorted(heldout_stats.items()):
         print(
             f"{relation:<{width}} : {stats['heldout_heads']:>5} heads "
-            f"({stats['heldout_triples']:>5} triples)"
+            f"({stats['heldout_triples']:>5} triples kept out of {stats['total_triples']:,} total)"
         )
 
 
