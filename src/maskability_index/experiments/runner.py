@@ -31,6 +31,12 @@ from maskability_index.prompting import (
     PrefixPromptBuilder,
 )
 from maskability_index.statistics import bootstrap_ci, correlations, permutation_test
+from maskability_index.training.preprocessing import (
+    TokenizationConfig,
+    instances_to_dataset,
+    tokenize_dataset,
+)
+from maskability_index.training.trainer import MaskabilitySeq2SeqTrainer, TrainingPipelineConfig
 from maskability_index.utils.io import ensure_output_tree, write_config, write_json
 from maskability_index.utils.logging import configure_logging
 from maskability_index.utils.reproducibility import collect_environment_info, set_seed
@@ -62,6 +68,7 @@ class ExperimentRunner:
         self.output_dir = root
         self._dataset_cache = None
         self._demo_cache = None
+        self._family_bundles: dict[str, Any] = {}
 
     def run(self) -> Path:
         """Execute dataset, prompting, inference, DepthRank, MI, stats, plots, and tables."""
@@ -123,19 +130,13 @@ class ExperimentRunner:
         configure_logging(output_dir / "logs" / "log.txt")
         set_seed(int(cfg.experiment.seed))
         write_config(output_dir / "config.yaml", cfg)
-        instances = self._load_dataset()
-        assert len(instances) > 0, "No instances found!!"
-        bundle = self._create_model_bundle()
         device = self._device()
-        depthrank_calculator = self._create_depthrank_calculator(
-            bundle.model, bundle.tokenizer, device
-        )
-        depthrank = self._compute_depthrank(instances, depthrank_calculator)
+        eval_instances = self._load_dataset()
+        assert len(eval_instances) > 0, "No instances found!!"
+        depthrank = self._run_adaptation_and_depthrank(eval_instances, device)
         if cfg.experiment.outputs.get("generate_predictions", False):
             predictions = self._build_predictions(
                 depthrank,
-                bundle.model,
-                bundle.tokenizer,
                 device,
             )
             self._write_csv(output_dir / "predictions.csv", predictions)
@@ -151,10 +152,12 @@ class ExperimentRunner:
         generate_plots(mi_df, output_dir / "plots")
         self._write_latex(mi_df)
         update_results_index(output_dir, Path("results") / "index.json")
-        (output_dir / "checkpoint" / "README.txt").write_text(
-            "Checkpoint directory reserved for configured HuggingFace training outputs.\n",
-            encoding="utf-8",
-        )
+        checkpoint_readme = output_dir / "checkpoint" / "README.txt"
+        if not checkpoint_readme.exists():
+            checkpoint_readme.write_text(
+                "Checkpoint directory reserved for configured HuggingFace training outputs.\n",
+                encoding="utf-8",
+            )
         return output_dir
 
     def _load_dataset(self) -> list[RelationInstance]:
@@ -165,7 +168,7 @@ class ExperimentRunner:
             configured_backend = dataset_cfg.get("backend", "auto")
             backend = "auto" if configured_backend == "atomic2020" else configured_backend
             instances = load_atomic2020_instances(
-                dataset_cfg.get("split", "validation"),
+                dataset_cfg.get("evaluation_split", dataset_cfg.get("split", "test")),
                 dataset_cfg.cache_dir,
                 dataset_cfg.hf_path,
                 local_path=dataset_cfg.get("local_path", None),
@@ -177,6 +180,20 @@ class ExperimentRunner:
             self._dataset_cache = sampled
             return sampled
         return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
+
+    def _load_dataset_split(self, split: str) -> list[RelationInstance]:
+        """Load, relation-filter, and return one configured ATOMIC2020 split."""
+        dataset_cfg = self.cfg.experiment.dataset
+        configured_backend = dataset_cfg.get("backend", "auto")
+        backend = "auto" if configured_backend == "atomic2020" else configured_backend
+        instances = load_atomic2020_instances(
+            split,
+            dataset_cfg.cache_dir,
+            dataset_cfg.hf_path,
+            local_path=dataset_cfg.get("local_path", None),
+            backend=backend,
+        )
+        return self._filter_relations(instances)
 
     def _filter_relations(self, instances: list[RelationInstance]) -> list[RelationInstance]:
         relations_cfg = self.cfg.experiment.get("relations", {})
@@ -331,15 +348,99 @@ class ExperimentRunner:
                 rows.append(self._depthrank_row(instance, template_family, result))
         return rows
 
+    def _run_adaptation_and_depthrank(
+        self, eval_instances: list[RelationInstance], device: str
+    ) -> list[dict[str, Any]]:
+        """Follow the manuscript order: fine-tune each template family, then evaluate DR."""
+        rows: list[dict[str, Any]] = []
+        if not bool(self.cfg.experiment.training.get("enabled", False)):
+            bundle = self._create_model_bundle()
+            self._family_bundles = {family: bundle for family in self._template_builders()}
+            calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
+            return self._compute_depthrank(eval_instances, calculator)
+
+        for template_family, builder in self._template_builders().items():
+            bundle = self._create_model_bundle()
+            self._fine_tune_for_family(template_family, builder, bundle)
+            self._family_bundles[template_family] = bundle
+            calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
+            for instance in eval_instances:
+                prompt = builder.build(instance)
+                result = calculator.compute(prompt, instance.tail)
+                rows.append(self._depthrank_row(instance, template_family, result))
+        return rows
+
+    def _fine_tune_for_family(self, template_family: str, builder: Any, bundle: Any) -> None:
+        """Fine-tune T5 on the configured few-shot train split for one template family."""
+        training = self.cfg.experiment.training
+        train_split = str(self.cfg.experiment.dataset.get("train_split", "train"))
+        dev_split = str(self.cfg.experiment.dataset.get("dev_split", "validation"))
+        train_instances = sample_instances_per_relation(
+            self._load_dataset_split(train_split),
+            instances_per_relation=self._few_shot_size(),
+            strategy=str(self.cfg.experiment.few_shot.get("strategy", "deterministic")),
+            seed=int(self.cfg.experiment.few_shot.get("seed", self.cfg.experiment.seed)),
+        )
+        eval_instances = sample_instances_per_relation(
+            self._load_dataset_split(dev_split),
+            instances_per_relation=training.get("eval_instances_per_relation", None),
+            strategy="deterministic",
+            seed=int(self.cfg.experiment.seed),
+        )
+        output_dir = Path(str(training.output_dir)) / template_family
+        token_cfg = TokenizationConfig(
+            max_input_length=int(training.get("max_input_length", 128)),
+            max_target_length=int(training.get("max_target_length", 32)),
+            cache_dir=None,
+            overwrite_cache=True,
+        )
+        train_dataset = tokenize_dataset(
+            instances_to_dataset(train_instances, builder), bundle.tokenizer, token_cfg
+        )
+        eval_dataset = tokenize_dataset(
+            instances_to_dataset(eval_instances, builder), bundle.tokenizer, token_cfg
+        )
+        trainer = MaskabilitySeq2SeqTrainer(
+            bundle.model,
+            bundle.tokenizer,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            config=TrainingPipelineConfig(
+                output_dir=str(output_dir),
+                epochs=float(training.epochs),
+                batch_size=int(training.batch_size),
+                learning_rate=float(training.learning_rate),
+                optimizer=str(training.get("optimizer", "adafactor")),
+                scheduler=str(training.get("scheduler", "constant")),
+                warmup=int(training.get("warmup", 0)),
+                weight_decay=float(training.get("weight_decay", 0.0)),
+                generation_length=int(training.get("generation_length", 32)),
+                beam_size=int(training.get("beam_size", 1)),
+                seed=int(training.get("seed", self.cfg.experiment.seed)),
+                mixed_precision=bool(training.get("mixed_precision", False)),
+                logging_steps=int(training.get("logging_steps", 50)),
+                save_strategy=str(training.get("save_strategy", "epoch")),
+                evaluation_strategy=str(training.get("evaluation_strategy", "epoch")),
+                predict_with_generate=bool(training.get("predict_with_generate", True)),
+            ),
+        )
+        resume = training.get("resume_from_checkpoint", None)
+        trainer.train(resume_from_checkpoint=resume)
+        trainer.evaluate()
+        trainer.save_checkpoint(output_dir)
+
     def _build_predictions(
-        self, depthrank_rows: list[dict[str, Any]], model: Any, tokenizer: Any, device: str
+        self, depthrank_rows: list[dict[str, Any]], device: str
     ) -> list[dict[str, Any]]:
         """Generate model predictions; never substitute the gold target as a prediction."""
         generation_length = int(self.cfg.experiment.training.get("generation_length", 32))
         beam_size = int(self.cfg.experiment.training.get("beam_size", 1))
         rows: list[dict[str, Any]] = []
-        model.eval()
         for row in depthrank_rows:
+            bundle = self._family_bundles[str(row["template_family"])]
+            model = bundle.model
+            tokenizer = bundle.tokenizer
+            model.eval()
             encoded = tokenizer(str(row["prompt"]), return_tensors="pt")
             encoded = {key: value.to(device) for key, value in encoded.items()}
             try:

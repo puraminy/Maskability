@@ -240,16 +240,18 @@ def load_atomic2020_dataset(
     else:
         print(f"Info: local file: {candidate}")
 
-    if backend in {"arrow", "local"}:
-        if (candidate / Path(split) / "dataset_info.json").exists():
+    if backend == "arrow":
+        if candidate.exists() and (candidate / Path(split) / "dataset_info.json").exists():
             dataset = _load_arrow_atomic2020_dataset(candidate, split)
-        raise FileNotFoundError(f"Local ATOMIC2020 arrow path does not exist: {candidate}")
+        else:
+            raise FileNotFoundError(f"Local ATOMIC2020 arrow path does not exist: {candidate}")
 
     # prefer local CSV files if backend explicitly csv/local
-    elif backend in {"csv", "arrow", "local"}:
+    elif backend in {"csv", "local"}:
         if candidate.exists():
             dataset = _load_atomic_csv_dataset(candidate)
-        raise FileNotFoundError(f"Local ATOMIC2020 CSV path does not exist: {candidate}")
+        else:
+            raise FileNotFoundError(f"Local ATOMIC2020 CSV path does not exist: {candidate}")
 
     # backend == 'hf' -> direct HF load
     elif backend == "hf":
@@ -275,7 +277,8 @@ def load_atomic2020_dataset(
                 # If HF attempt fails, present the same helpful message as before
                 raise RuntimeError(
                     "Could not load ATOMIC2020. Attempted local CSV then HuggingFace download, "
-                    f"but both failed. Last error: {exc}"
+                    f"but both failed; automatic downloads are disabled or unavailable. "
+                    f"Last error: {exc}"
                 ) from exc
     print(dataset.keys())
     print(dataset[split][0])

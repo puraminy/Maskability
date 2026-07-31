@@ -22,7 +22,9 @@ dataset:
   hf_path: Estwld/atomic2020-comet-origin
   cache_dir: data/cache
   local_path: data/atomic2020_500
-  split: train
+  train_split: train
+  dev_split: validation
+  evaluation_split: test
 
 few_shot:
   enabled: true
@@ -57,6 +59,18 @@ training:
   epochs: 3
   batch_size: 8
   learning_rate: 0.0001
+  optimizer: adafactor
+  scheduler: constant
+  warmup: 0
+  weight_decay: 0.0
+  max_input_length: 128
+  max_target_length: 32
+  generation_length: 32
+  beam_size: 1
+  seed: ${experiment.seed}
+  save_strategy: epoch
+  evaluation_strategy: epoch
+  predict_with_generate: true
   mixed_precision: false
   output_dir: ${experiment.output_dir}/checkpoint
 
@@ -85,6 +99,5 @@ tracking:
   experiment_name: ${experiment.name}
 
 outputs:
-  generate_predictions: false
+  generate_predictions: true
   create_subdirs: [logs, checkpoint, plots, latex]
-
