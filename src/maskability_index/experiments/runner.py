@@ -66,8 +66,10 @@ class ExperimentRunner:
         name = str(cfg.experiment.name)
         root = Path(output_dir or cfg.experiment.get("output_dir", Path("results") / name))
         self.output_dir = root
-        self._dataset_cache = None
+        self._dataset_cache: dict[str, list[RelationInstance]] = {}
         self._demo_cache = None
+        self._train_instances: list[RelationInstance] = []
+        self._heldout_instances: list[RelationInstance] = []
         self._family_bundles: dict[str, Any] = {}
 
     def run(self) -> Path:
@@ -131,8 +133,18 @@ class ExperimentRunner:
         set_seed(int(cfg.experiment.seed))
         write_config(output_dir / "config.yaml", cfg)
         device = self._device()
-        eval_instances = self._load_dataset()
-        assert len(eval_instances) > 0, "No instances found!!"
+        LOGGER.info("[Phase 1/6] Loading dataset...")
+        train_instances, eval_instances = self._load_phase1_splits()
+        LOGGER.info(
+            "Loaded %s train examples; loaded %s heldout examples; relations: %s",
+            len(train_instances),
+            len(eval_instances),
+            len({instance.relation for instance in eval_instances}),
+        )
+        LOGGER.info("[Phase 2/6] Constructing few-shot dataset...")
+        self._train_instances = self._construct_few_shot_training_set(train_instances)
+        LOGGER.info("[Phase 3/6] Fine-tuning configured template families...")
+        LOGGER.info("[Phase 4/6] Computing DepthRank...")
         depthrank = self._run_adaptation_and_depthrank(eval_instances, device)
         if cfg.experiment.outputs.get("generate_predictions", False):
             predictions = self._build_predictions(
@@ -141,8 +153,10 @@ class ExperimentRunner:
             )
             self._write_csv(output_dir / "predictions.csv", predictions)
 
+        LOGGER.info("[Phase 5/6] Computing MI...")
         mi_scores = self._compute_mi(depthrank)
         metrics = self._compute_statistics(mi_scores, start)
+        LOGGER.info("[Phase 6/6] Writing outputs...")
         self._write_csv(output_dir / "depthrank.csv", depthrank)
         mi_df = pd.DataFrame(mi_scores)
         mi_df.attrs["threshold"] = float(cfg.experiment.analysis.threshold)
@@ -161,28 +175,31 @@ class ExperimentRunner:
         return output_dir
 
     def _load_dataset(self) -> list[RelationInstance]:
-        if self._dataset_cache is not None:
-            return self._dataset_cache
+        """Backward-compatible heldout loader used by older callers."""
+        _, heldout = self._load_phase1_splits()
+        return heldout
+
+    def _load_phase1_splits(self) -> tuple[list[RelationInstance], list[RelationInstance]]:
+        """Load configured train and heldout splits and validate scientific split invariants."""
         dataset_cfg = self.cfg.experiment.dataset
-        if dataset_cfg.get("backend", "auto") in {"atomic2020", "auto", "local", "hf", "csv"}:
-            configured_backend = dataset_cfg.get("backend", "auto")
-            backend = "auto" if configured_backend == "atomic2020" else configured_backend
-            instances = load_atomic2020_instances(
-                dataset_cfg.get("evaluation_split", dataset_cfg.get("split", "test")),
-                dataset_cfg.cache_dir,
-                dataset_cfg.hf_path,
-                local_path=dataset_cfg.get("local_path", None),
-                backend=backend,
-            )
-            filtered = self._filter_relations(instances)
-            self._report_missing_relations(instances, filtered)
-            sampled = self._sample_evaluation(filtered)
-            self._dataset_cache = sampled
-            return sampled
-        return [RelationInstance(**dict(row)) for row in dataset_cfg.get("synthetic_rows", [])]
+        train_split = str(dataset_cfg.get("train_split", dataset_cfg.get("split", "train")))
+        heldout_split = str(
+            dataset_cfg.get("heldout_split", dataset_cfg.get("evaluation_split", "test"))
+        )
+        train = self._load_dataset_split(train_split)
+        heldout_all = self._load_dataset_split(heldout_split)
+        self._validate_no_overlap(train, heldout_all, train_split, heldout_split)
+        heldout = self._sample_evaluation(heldout_all)
+        if not heldout:
+            raise ValueError(f"Heldout split {heldout_split!r} produced no evaluation examples.")
+        self._validate_evaluation_relations(heldout)
+        self._heldout_instances = heldout
+        return train, heldout
 
     def _load_dataset_split(self, split: str) -> list[RelationInstance]:
         """Load, relation-filter, and return one configured ATOMIC2020 split."""
+        if split in self._dataset_cache:
+            return self._dataset_cache[split]
         dataset_cfg = self.cfg.experiment.dataset
         configured_backend = dataset_cfg.get("backend", "auto")
         backend = "auto" if configured_backend == "atomic2020" else configured_backend
@@ -193,7 +210,10 @@ class ExperimentRunner:
             local_path=dataset_cfg.get("local_path", None),
             backend=backend,
         )
-        return self._filter_relations(instances)
+        filtered = self._filter_relations(instances)
+        self._report_missing_relations(instances, filtered)
+        self._dataset_cache[split] = filtered
+        return filtered
 
     def _filter_relations(self, instances: list[RelationInstance]) -> list[RelationInstance]:
         relations_cfg = self.cfg.experiment.get("relations", {})
@@ -213,7 +233,84 @@ class ExperimentRunner:
         selected = list(relations_cfg.get("selected", []))
         missing = [relation for relation in selected if relation not in available]
         if missing:
-            LOGGER.warning("Missing configured relations with no loaded examples: %s", missing)
+            raise ValueError(
+                "Configured relations are absent from the loaded dataset split: "
+                + ", ".join(missing)
+            )
+
+    @staticmethod
+    def _identity(instance: RelationInstance) -> tuple[str, str, str]:
+        return (instance.head, instance.relation, instance.tail)
+
+    def _validate_no_overlap(
+        self,
+        train: list[RelationInstance],
+        heldout: list[RelationInstance],
+        train_split: str,
+        heldout_split: str,
+    ) -> None:
+        train_keys = {self._identity(instance) for instance in train}
+        heldout_keys = {self._identity(instance) for instance in heldout}
+        overlap = train_keys & heldout_keys
+        if overlap:
+            preview = sorted(overlap)[:3]
+            raise ValueError(
+                f"Train split {train_split!r} and heldout split {heldout_split!r} overlap "
+                f"on {len(overlap)} triples; examples: {preview}."
+            )
+
+    def _validate_evaluation_relations(self, heldout: list[RelationInstance]) -> None:
+        relations_cfg = self.cfg.experiment.get("relations", {})
+        if str(relations_cfg.get("mode", "selected")) == "selected":
+            selected = set(relations_cfg.get("selected", []))
+            present = {instance.relation for instance in heldout}
+            missing = sorted(selected - present)
+            if missing:
+                raise ValueError(
+                    "Every configured relation must contribute heldout evaluation heads; "
+                    f"missing: {missing}."
+                )
+
+        frame = pd.DataFrame([asdict(i) for i in heldout])
+        missing_heads = [
+            relation for relation, group in frame.groupby("relation") if group["head"].nunique() < 1
+        ]
+        if missing_heads:
+            raise ValueError(
+                "Every configured relation must contribute heldout evaluation heads; missing: "
+                + ", ".join(missing_heads)
+            )
+
+    def _construct_few_shot_training_set(
+        self, train_instances: list[RelationInstance]
+    ) -> list[RelationInstance]:
+        n_shot = self._few_shot_size()
+        selected = sample_instances_per_relation(
+            train_instances,
+            instances_per_relation=n_shot,
+            strategy=str(self.cfg.experiment.few_shot.get("strategy", "deterministic")),
+            seed=int(self.cfg.experiment.few_shot.get("seed", self.cfg.experiment.seed)),
+        )
+        counts: dict[str, int] = {}
+        for instance in selected:
+            counts[instance.relation] = counts.get(instance.relation, 0) + 1
+        expected_relations = sorted({instance.relation for instance in train_instances})
+        bad = {
+            relation: counts.get(relation, 0)
+            for relation in expected_relations
+            if counts.get(relation, 0) != n_shot
+        }
+        expected_total = len(expected_relations) * n_shot
+        LOGGER.info("n_shot = %s", n_shot)
+        LOGGER.info("Selected relations = %s", expected_relations)
+        LOGGER.info("Examples per relation = %s", counts)
+        LOGGER.info("Training examples = %s", len(selected))
+        if bad or len(selected) != expected_total:
+            raise ValueError(
+                f"Few-shot invariant violated: expected {n_shot} examples for each of "
+                f"{len(expected_relations)} relations ({expected_total} total), got counts {counts}."
+            )
+        return selected
 
 
     def _sample_dataset(self, instances: list[RelationInstance]) -> list[RelationInstance]:
@@ -299,7 +396,11 @@ class ExperimentRunner:
             families = ("prompting", "masked_prompting")
         else:
             families = (STYLE_ALIASES.get(style, style),)
-        demonstrations = self._demonstrations()
+        demonstrations = (
+            self._demonstrations()
+            if self.cfg.experiment.prompting.get("demonstrations", {}).get("enabled", False)
+            else []
+        )
         builders: dict[str, Any] = {}
         for family in families:
             builder = TEMPLATE_FAMILIES[family]()
@@ -318,7 +419,9 @@ class ExperimentRunner:
         if not self.cfg.experiment.few_shot.enabled:
             return []
 
-        instances = self._load_dataset()
+        instances = self._train_instances or self._load_dataset_split(
+            str(self.cfg.experiment.dataset.get("train_split", "train"))
+        )
 
         demos = sample_instances_per_relation(
             instances,
@@ -342,7 +445,16 @@ class ExperimentRunner:
         """Compute DepthRank with the canonical teacher-forced calculator only."""
         rows: list[dict[str, Any]] = []
         for template_family, builder in self._template_builders().items():
-            for instance in instances:
+            LOGGER.info(
+                "Computing DepthRank for %s on %s heldout examples",
+                template_family,
+                len(instances),
+            )
+            for index, instance in enumerate(instances, start=1):
+                if index == 1 or index % 100 == 0 or index == len(instances):
+                    LOGGER.info(
+                        "DepthRank progress %s: %s/%s", template_family, index, len(instances)
+                    )
                 prompt = builder.build(instance)
                 result = calculator.compute(prompt, instance.tail)
                 rows.append(self._depthrank_row(instance, template_family, result))
@@ -364,7 +476,19 @@ class ExperimentRunner:
             self._fine_tune_for_family(template_family, builder, bundle)
             self._family_bundles[template_family] = bundle
             calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
-            for instance in eval_instances:
+            LOGGER.info(
+                "Computing DepthRank for %s on %s heldout examples",
+                template_family,
+                len(eval_instances),
+            )
+            for index, instance in enumerate(eval_instances, start=1):
+                if index == 1 or index % 100 == 0 or index == len(eval_instances):
+                    LOGGER.info(
+                        "DepthRank progress %s: %s/%s",
+                        template_family,
+                        index,
+                        len(eval_instances),
+                    )
                 prompt = builder.build(instance)
                 result = calculator.compute(prompt, instance.tail)
                 rows.append(self._depthrank_row(instance, template_family, result))
@@ -375,11 +499,8 @@ class ExperimentRunner:
         training = self.cfg.experiment.training
         train_split = str(self.cfg.experiment.dataset.get("train_split", "train"))
         dev_split = str(self.cfg.experiment.dataset.get("dev_split", "validation"))
-        train_instances = sample_instances_per_relation(
-            self._load_dataset_split(train_split),
-            instances_per_relation=self._few_shot_size(),
-            strategy=str(self.cfg.experiment.few_shot.get("strategy", "deterministic")),
-            seed=int(self.cfg.experiment.few_shot.get("seed", self.cfg.experiment.seed)),
+        train_instances = self._train_instances or self._construct_few_shot_training_set(
+            self._load_dataset_split(train_split)
         )
         eval_instances = sample_instances_per_relation(
             self._load_dataset_split(dev_split),
@@ -452,7 +573,7 @@ class ExperimentRunner:
                     num_beams=beam_size,
                 )
             else:
-                with torch.no_grad():
+                with torch.inference_mode():
                     output_ids = model.generate(
                         **encoded,
                         max_length=generation_length,
@@ -513,6 +634,10 @@ class ExperimentRunner:
         rows: list[dict[str, Any]] = []
         for relation, values in sorted(by_relation.items()):
             sample_size = min(len(values["prompting"]), len(values["masked_prompting"]))
+            if not values["prompting"] or not values["masked_prompting"]:
+                raise ValueError(
+                    f"Cannot compute MI for {relation}: both prompting families are required."
+                )
             result = asdict(
                 calc.compute(
                     relation, values["prompting"], values["masked_prompting"], sample_size
