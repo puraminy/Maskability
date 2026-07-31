@@ -45,3 +45,15 @@ The paper says held-out heads may have up to three reference tails, but the Dept
 ## MI at zero prefix DepthRank
 
 The paper defines MI with `DR_Prompting(r,n)` in the denominator but does not specify behavior when that value is zero. The implementation raises `ZeroDivisionError` because the equation is mathematically undefined.
+
+## Demonstrations versus parameter fine-tuning leakage
+
+The manuscript describes few-shot sample sizes and fine-tuning T5-base for three epochs, but it does not explicitly state that evaluation prompts should include in-context demonstrations after fine-tuning. To avoid mixing parameter fine-tuning with in-context learning, the runner treats the `n_shot` examples as the parameter fine-tuning dataset and only adds demonstrations when `experiment.prompting.demonstrations.enabled` is explicitly configured.
+
+## Checkpoint retention policy
+
+The manuscript states that checkpoints should be saved, but does not define retention limits or best-checkpoint selection. The implementation delegates checkpoint cadence to the YAML `training.save_strategy` and leaves retention policy to the configured HuggingFace trainer behavior.
+
+## Generation scores and probabilities
+
+The implementation specification asks predictions to store scores and probabilities “if available,” but the manuscript does not define a probability aggregation method for generated sequences. Prediction generation therefore records text outputs and leaves score/probability fields blank unless a future, explicitly specified scoring method is added.

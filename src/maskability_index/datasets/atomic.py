@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import csv
+import logging
 import random
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
@@ -17,6 +18,8 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Mapping as TypingMapping
 
 from .manager import DatasetConfig, hf_download_and_cache
+
+LOGGER = logging.getLogger(__name__)
 
 VALID_RELATIONS = {
     "AtLocation",
@@ -233,12 +236,12 @@ def load_atomic2020_dataset(
         # leave them unchanged
 
     # Arrow/HF save_to_disk format
-    print("Loading dataset...")
+    LOGGER.info("Loading ATOMIC2020 split %s with backend %s", split, backend)
     dataset = None
     if not candidate.exists():
-        print(f"WARNING: {candidate} doesn't exist")
+        LOGGER.warning("Configured local ATOMIC2020 path does not exist: %s", candidate)
     else:
-        print(f"Info: local file: {candidate}")
+        LOGGER.info("Using local ATOMIC2020 path: %s", candidate)
 
     if backend == "arrow":
         if candidate.exists() and (candidate / Path(split) / "dataset_info.json").exists():
@@ -280,8 +283,7 @@ def load_atomic2020_dataset(
                     f"but both failed; automatic downloads are disabled or unavailable. "
                     f"Last error: {exc}"
                 ) from exc
-    print(dataset.keys())
-    print(dataset[split][0])
+    LOGGER.info("Loaded ATOMIC2020 splits: %s", sorted(dataset.keys()))
     return dataset
 
 def load_atomic2020_instances(
@@ -425,7 +427,7 @@ def _load_arrow_atomic2020_dataset(path: Path, split:str) -> TypingMapping[str, 
             "Install the `datasets` package to use Arrow datasets."
         ) from exc
 
-    print("Loading arrow dataset from disk...")
+    LOGGER.info("Loading arrow dataset from disk: %s", path)
     ds_path = path / Path(split)
     dataset = load_from_disk(str(ds_path))
 
@@ -468,13 +470,13 @@ def _load_hf_atomic2020_dataset(hf_path: str, cache_dir: str | None = None) -> T
     except ImportError as exc:
         raise ImportError("Install the `datasets` package to use the HuggingFace ATOMIC backend.") from exc
 
-    candidate = Path(cache_dir).expanduser()
+    candidate = Path(cache_dir).expanduser() if cache_dir is not None else None
 
     # If relative (e.g. data/atomic2020_500), make it project-root relative
-    if not candidate.is_absolute():
+    if candidate is not None and not candidate.is_absolute():
         candidate = PROJECT_ROOT / candidate
 
-    dataset = load_dataset(hf_path, cache_dir=candidate)
+    dataset = load_dataset(hf_path, cache_dir=None if candidate is None else str(candidate))
     if not isinstance(dataset, dict):  # DatasetDict under the hood behaves like dict
         raise TypeError(f"Expected DatasetDict for {hf_path!r}, got {type(dataset).__name__}.")
     # convert to mapping of split->list[dict]
