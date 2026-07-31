@@ -221,6 +221,7 @@ def convert_split(split, relation_counts, max_per_relation):
             
         relation = m.group(2)
         
+        # Apply limit if specified
         if (
             max_per_relation is not None
             and relation_counts[relation] >= max_per_relation
@@ -274,7 +275,7 @@ def main():
         "--max-per-relation",
         type=int,
         default=500,
-        help="Maximum examples kept per relation (default: %(default)s)",
+        help="Maximum examples kept per relation in train (default: %(default)s)",
     )
     
     parser.add_argument(
@@ -341,17 +342,37 @@ def main():
     print("\nConverting splits to triple format")
     print("-" * 60)
     
-    relation_counts = Counter()
     converted = {}
+    train_relation_counts = Counter()
+    heldout_relation_counts = Counter()
     
     for split_name, split in new_ds.items():
         print(f"{split_name:10s} ({len(split):,} rows)")
         
-        converted[split_name] = convert_split(
-            split,
-            relation_counts,
-            args.max_per_relation,
-        )
+        # Apply max_per_relation only to train split
+        if split_name == "train":
+            converted[split_name] = convert_split(
+                split,
+                train_relation_counts,
+                args.max_per_relation
+            )
+        else:
+            # No limit for heldout, validation, test
+            if split_name == "heldout":
+                # Track heldout relation counts for reporting
+                converted[split_name] = convert_split(
+                    split,
+                    heldout_relation_counts,
+                    None  # no limit
+                )
+            else:
+                # Validation and test - use a dummy counter
+                dummy_counter = Counter()
+                converted[split_name] = convert_split(
+                    split,
+                    dummy_counter,
+                    None  # no limit
+                )
     
     out = DatasetDict(converted)
     
@@ -359,18 +380,26 @@ def main():
     
     print(f"\nSaved to: {output_path}")
     
-    print("\nExamples kept per relation")
+    print("\nTrain relations (capped at {} per relation)".format(args.max_per_relation))
     print("-" * 60)
     
-    width = max(map(len, relation_counts))
+    width = max(len(r) for r in train_relation_counts) if train_relation_counts else 20
     
-    for relation in sorted(relation_counts):
+    for relation in sorted(train_relation_counts):
         print(
-            f"{relation:<{width}} : {relation_counts[relation]:>5}"
+            f"{relation:<{width}} : {train_relation_counts[relation]:>5}"
         )
     
+    if heldout_relation_counts:
+        print("\nHeldout relations (no limit - all heldout heads included)")
+        print("-" * 60)
+        for relation in sorted(heldout_relation_counts):
+            print(
+                f"{relation:<{width}} : {heldout_relation_counts[relation]:>5}"
+            )
+    
     # Also show heldout sizes
-    print("\nHeldout sizes per relation")
+    print("\nHeldout head statistics")
     print("-" * 60)
     for relation, stats in sorted(heldout_stats.items()):
         print(
