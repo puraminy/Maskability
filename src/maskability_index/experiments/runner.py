@@ -500,35 +500,77 @@ class ExperimentRunner:
         return rows
 
     def _fine_tune_for_family(self, template_family: str, builder: Any, bundle: Any) -> None:
-        """Fine-tune T5 on the configured few-shot train split for one template family."""
+        """Fine-tune one prompting family on the few-shot training set."""
+
+        LOGGER.info("Fine-tuning %s", template_family)
+
         training = self.cfg.experiment.training
-        train_split = str(self.cfg.experiment.dataset.get("train_split", "train"))
-        dev_split = str(self.cfg.experiment.dataset.get("dev_split", "validation"))
-        train_instances = self._train_instances or self._construct_few_shot_training_set(
-            self._load_dataset_split(train_split)
+
+        enable_validation = bool(training.get("enable_validation", False))
+
+        train_split = str(
+            self.cfg.experiment.dataset.get("train_split", "train")
         )
-        if training.enable_validation is True:
+
+        dev_split = str(
+            self.cfg.experiment.dataset.get("dev_split", "validation")
+        )
+
+        train_instances = (
+            self._train_instances
+            or self._construct_few_shot_training_set(
+                self._load_dataset_split(train_split)
+            )
+        )
+
+        eval_instances = None
+
+        if enable_validation:
+            LOGGER.info("Preparing validation dataset...")
             eval_instances = sample_instances_per_relation(
                 self._load_dataset_split(dev_split),
-                instances_per_relation=training.get("eval_instances_per_relation", None),
+                instances_per_relation=training.get(
+                    "eval_instances_per_relation",
+                    None,
+                ),
                 strategy="deterministic",
                 seed=int(self.cfg.experiment.seed),
             )
+
         output_dir = Path(str(training.output_dir)) / template_family
+
         token_cfg = TokenizationConfig(
             max_input_length=int(training.get("max_input_length", 128)),
             max_target_length=int(training.get("max_target_length", 32)),
             cache_dir=None,
             overwrite_cache=True,
         )
-        train_dataset = tokenize_dataset(
-            instances_to_dataset(train_instances, builder), bundle.tokenizer, token_cfg
+
+        LOGGER.info(
+            "Tokenizing %d training examples...",
+            len(train_instances),
         )
+
+        train_dataset = tokenize_dataset(
+            instances_to_dataset(train_instances, builder),
+            bundle.tokenizer,
+            token_cfg,
+        )
+
         eval_dataset = None
-        if training.enable_validation:
-            eval_dataset = tokenize_dataset(
-                instances_to_dataset(eval_instances, builder), bundle.tokenizer, token_cfg
+
+        if enable_validation:
+            LOGGER.info(
+                "Tokenizing %d validation examples...",
+                len(eval_instances),
             )
+
+            eval_dataset = tokenize_dataset(
+                instances_to_dataset(eval_instances, builder),
+                bundle.tokenizer,
+                token_cfg,
+            )
+
         trainer = MaskabilitySeq2SeqTrainer(
             bundle.model,
             bundle.tokenizer,
@@ -549,15 +591,31 @@ class ExperimentRunner:
                 mixed_precision=bool(training.get("mixed_precision", False)),
                 logging_steps=int(training.get("logging_steps", 50)),
                 save_strategy=str(training.get("save_strategy", "epoch")),
-                evaluation_strategy=str(training.get("evaluation_strategy", "epoch")),
-                predict_with_generate=bool(training.get("predict_with_generate", True)),
+                evaluation_strategy=(
+                    str(training.get("evaluation_strategy", "epoch"))
+                    if enable_validation
+                    else "no"
+                ),
+                predict_with_generate=(
+                    bool(training.get("predict_with_generate", True))
+                    if enable_validation
+                    else False
+                ),
             ),
         )
+
         resume = training.get("resume_from_checkpoint", None)
+
+        LOGGER.info("Starting training...")
         trainer.train(resume_from_checkpoint=resume)
-        if training.enable_validation is True:
+
+        if enable_validation:
+            LOGGER.info("Running validation...")
             trainer.evaluate()
+
         trainer.save_checkpoint(output_dir)
+
+        LOGGER.info("Finished fine-tuning %s", template_family)
 
     def _build_predictions(
         self, depthrank_rows: list[dict[str, Any]], device: str
