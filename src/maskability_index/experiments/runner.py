@@ -143,8 +143,6 @@ class ExperimentRunner:
         )
         LOGGER.info("[Phase 2/6] Constructing few-shot dataset...")
         self._train_instances = self._construct_few_shot_training_set(train_instances)
-        LOGGER.info("[Phase 3/6] Fine-tuning configured template families...")
-        LOGGER.info("[Phase 4/6] Computing DepthRank...")
         depthrank = self._run_adaptation_and_depthrank(eval_instances, device)
         if cfg.experiment.outputs.get("generate_predictions", False):
             predictions = self._build_predictions(
@@ -471,11 +469,18 @@ class ExperimentRunner:
             calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
             return self._compute_depthrank(eval_instances, calculator)
 
+        LOGGER.info("[Phase 3/6] Fine-tuning configured template families...")
         for template_family, builder in self._template_builders().items():
             bundle = self._create_model_bundle()
+            LOGGER.info(
+                "Finetuning for %s using %s builder",
+                template_family,
+                builder
+            )
             self._fine_tune_for_family(template_family, builder, bundle)
             self._family_bundles[template_family] = bundle
             calculator = self._create_depthrank_calculator(bundle.model, bundle.tokenizer, device)
+            LOGGER.info("[Phase 4/6] Computing DepthRank...")
             LOGGER.info(
                 "Computing DepthRank for %s on %s heldout examples",
                 template_family,
@@ -502,12 +507,13 @@ class ExperimentRunner:
         train_instances = self._train_instances or self._construct_few_shot_training_set(
             self._load_dataset_split(train_split)
         )
-        eval_instances = sample_instances_per_relation(
-            self._load_dataset_split(dev_split),
-            instances_per_relation=training.get("eval_instances_per_relation", None),
-            strategy="deterministic",
-            seed=int(self.cfg.experiment.seed),
-        )
+        if training.enable_validation is True:
+            eval_instances = sample_instances_per_relation(
+                self._load_dataset_split(dev_split),
+                instances_per_relation=training.get("eval_instances_per_relation", None),
+                strategy="deterministic",
+                seed=int(self.cfg.experiment.seed),
+            )
         output_dir = Path(str(training.output_dir)) / template_family
         token_cfg = TokenizationConfig(
             max_input_length=int(training.get("max_input_length", 128)),
@@ -518,9 +524,11 @@ class ExperimentRunner:
         train_dataset = tokenize_dataset(
             instances_to_dataset(train_instances, builder), bundle.tokenizer, token_cfg
         )
-        eval_dataset = tokenize_dataset(
-            instances_to_dataset(eval_instances, builder), bundle.tokenizer, token_cfg
-        )
+        eval_dataset = None
+        if training.enable_validation:
+            eval_dataset = tokenize_dataset(
+                instances_to_dataset(eval_instances, builder), bundle.tokenizer, token_cfg
+            )
         trainer = MaskabilitySeq2SeqTrainer(
             bundle.model,
             bundle.tokenizer,
@@ -547,7 +555,8 @@ class ExperimentRunner:
         )
         resume = training.get("resume_from_checkpoint", None)
         trainer.train(resume_from_checkpoint=resume)
-        trainer.evaluate()
+        if training.enable_validation is True:
+            trainer.evaluate()
         trainer.save_checkpoint(output_dir)
 
     def _build_predictions(

@@ -11,6 +11,7 @@ relations:
     - xAttr
     - CapableOf
     - HasProperty
+    - FilledBy
     - xIntent
     - xNeed
     - xWant
@@ -68,7 +69,9 @@ training:
   beam_size: 1
   seed: ${experiment.seed}
   save_strategy: epoch
+  enable_validation: false
   evaluation_strategy: epoch
+  eval_instances_per_relation: 10
   predict_with_generate: true
   mixed_precision: false
   output_dir: ${experiment.output_dir}/checkpoint
