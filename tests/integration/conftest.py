@@ -19,7 +19,13 @@ class _TensorLike(list):
 class _FakeTokenizer:
     """Small tokenizer implementing the methods used by generation."""
 
-    def __call__(self, text, return_tensors=None):
+    def __call__(self, text=None, text_target=None, return_tensors=None, **kwargs):
+        text = text_target if text_target is not None else text
+        if isinstance(text, list):
+            return {
+                "input_ids": [[1, 2] for _ in text],
+                "attention_mask": [[1, 1] for _ in text],
+            }
         return {"input_ids": _TensorLike([[1, 2, 3]]), "attention_mask": _TensorLike([[1, 1, 1]])}
 
     def decode(self, ids, skip_special_tokens=True):
@@ -56,6 +62,31 @@ class _FakeDepthRankCalculator:
         )
 
 
+class _FakeTrainer:
+    """No-op trainer test double that records the intended training phase."""
+
+    calls: list[str] = []
+
+    def __init__(self, model, tokenizer, train_dataset, eval_dataset, config):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.config = config
+
+    def train(self, resume_from_checkpoint=None):
+        self.calls.append(f"train:{self.config.output_dir}")
+
+    def evaluate(self):
+        self.calls.append(f"evaluate:{self.config.output_dir}")
+        return {"eval_loss": 0.0}
+
+    def save_checkpoint(self, output_dir=None):
+        from pathlib import Path
+
+        path = Path(output_dir or self.config.output_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "README.txt").write_text("fake checkpoint\n", encoding="utf-8")
+
+
 @pytest.fixture(autouse=True)
 def fake_seq2seq_components(monkeypatch):
     """Patch heavyweight dependencies while preserving runner orchestration semantics."""
@@ -68,3 +99,4 @@ def fake_seq2seq_components(monkeypatch):
         "maskability_index.experiments.runner.ExperimentRunner._create_depthrank_calculator",
         lambda self, model, tokenizer, device: _FakeDepthRankCalculator(model, tokenizer, device),
     )
+    monkeypatch.setattr("maskability_index.experiments.runner.MaskabilitySeq2SeqTrainer", _FakeTrainer)

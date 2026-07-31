@@ -13,12 +13,14 @@ from maskability_index.experiments import ExperimentRegistry, ExperimentRunner, 
 def _write_atomic_fixture(tmp_path: Path) -> Path:
     data_dir = tmp_path / "atomic"
     data_dir.mkdir(exist_ok=True)
-    (data_dir / "v4_atomic_dev.csv").write_text(
+    csv_text = (
         "event,oEffect,oReact,oWant,xAttr,xEffect,xIntent,xNeed,xReact,xWant\n"
         "PersonX drinks coffee,[],[],[],[],[],[],[],[],['to stay awake']\n"
-        "rain,['wet streets'],[],[],[],[],[],[],[],[]\n",
-        encoding="utf-8",
+        "rain,['wet streets'],[],[],[],[],[],[],[],[]\n"
     )
+    (data_dir / "v4_atomic_trn.csv").write_text(csv_text, encoding="utf-8")
+    (data_dir / "v4_atomic_dev.csv").write_text(csv_text, encoding="utf-8")
+    (data_dir / "v4_atomic_tst.csv").write_text(csv_text, encoding="utf-8")
     return data_dir
 
 
